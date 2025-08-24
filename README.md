@@ -7,8 +7,11 @@
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS)
+[![GitHub](https://img.shields.io/badge/GitHub-EugenVar-181717?style=for-the-badge&logo=github)](https://github.com/EugenVar/Game-of-Life)
 
 *Расширенная интерактивная симуляция клеточного автомата Конвея с эволюцией и генетическими алгоритмами*
+
+[🚀 **Запустить игру**](https://eugenvar.github.io/Game-of-Life/) | [📁 **Исходный код**](https://github.com/EugenVar/Game-of-Life) | [🐛 **Баг-репорты**](https://github.com/EugenVar/Game-of-Life/issues)
 
 </div>
 
@@ -302,7 +305,13 @@ Generation,Population,AvgFitness,Diversity,Predators,Prey
 
 ## 🌟 Поддержите проект
 
-Если проект оказался полезным, поставьте ⭐ на GitHub - это поможет другим исследователям и студентам найти этот образовательный инструмент!
+Если проект оказался полезным, поставьте ⭐ на [GitHub](https://github.com/EugenVar/Game-of-Life) - это поможет другим исследователям и студентам найти этот образовательный инструмент!
+
+### 🔗 Полезные ссылки
+- [🚀 **Живая демо-версия**](https://eugenvar.github.io/Game-of-Life/)
+- [📖 **Документация**](https://github.com/EugenVar/Game-of-Life#readme)
+- [🐛 **Сообщить о проблеме**](https://github.com/EugenVar/Game-of-Life/issues)
+- [💡 **Предложить улучшение**](https://github.com/EugenVar/Game-of-Life/issues/new)
 
 ---
 
@@ -310,6 +319,9 @@ Generation,Population,AvgFitness,Diversity,Predators,Prey
 
 **🧬 Evolution Game of Life - Где наука встречается с интерактивностью! 🧬**
 
-*Создано с помощью Claude AI для образования и исследований*
+*Создано с помощью [Claude Code](https://claude.ai/code) для образования и исследований*
+
+[![GitHub Stars](https://img.shields.io/github/stars/EugenVar/Game-of-Life?style=social)](https://github.com/EugenVar/Game-of-Life)
+[![GitHub Forks](https://img.shields.io/github/forks/EugenVar/Game-of-Life?style=social)](https://github.com/EugenVar/Game-of-Life)
 
 </div>
