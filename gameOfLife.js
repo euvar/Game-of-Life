@@ -19,37 +19,42 @@ class SoundSystem {
 
     playSound(frequency, duration, type = 'sine') {
         if (!this.enabled || !this.audioContext) {
-            console.log('Звук не проиграть:', !this.enabled ? 'отключен' : 'нет контекста');
             return;
         }
         
-        // Активируем аудио контекст если нужно
-        if (this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
+        try {
+            // Активируем аудио контекст если нужно
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка валидности параметров
+            const safeFrequency = Math.max(20, Math.min(20000, frequency || 440));
+            const safeDuration = Math.max(0.01, Math.min(1, duration || 0.1));
+            
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+        
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(safeFrequency, this.audioContext.currentTime);
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + safeDuration);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + safeDuration);
+            
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: предотвращаем утечки памяти
+            oscillator.onended = () => {
+                oscillator.disconnect();
+                gainNode.disconnect();
+            };
+        } catch (error) {
+            console.warn('Ошибка воспроизведения звука:', error);
         }
-        
-        console.log(`Проигрываем звук: ${frequency}Hz, ${duration}s, ${type}`);
-        
-        const oscillator = this.audioContext.createOscillator();
-        const gainNode = this.audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-        oscillator.type = type;
-        
-        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
-        
-        oscillator.start(this.audioContext.currentTime);
-        oscillator.stop(this.audioContext.currentTime + duration);
-        
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: предотвращаем утечки памяти
-        oscillator.onended = () => {
-            oscillator.disconnect();
-            gainNode.disconnect();
-        };
     }
 
     birth() { this.playSound(440, 0.1); }
@@ -61,11 +66,11 @@ class SoundSystem {
 // Класс для ДНК клетки
 class CellDNA {
     constructor(survival = null, reproduction = null, adaptation = null, resistance = null, species = 'prey') {
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: правильная обработка null/undefined vs 0
-        this.survival = survival !== null && survival !== undefined ? survival : (20 + Math.random() * 80);
-        this.reproduction = reproduction !== null && reproduction !== undefined ? reproduction : (10 + Math.random() * 90);
-        this.adaptation = adaptation !== null && adaptation !== undefined ? adaptation : (10 + Math.random() * 90);
-        this.resistance = resistance !== null && resistance !== undefined ? resistance : (10 + Math.random() * 90);
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: используем nullish coalescing для упрощения
+        this.survival = survival ?? (20 + Math.random() * 80);
+        this.reproduction = reproduction ?? (10 + Math.random() * 90);
+        this.adaptation = adaptation ?? (10 + Math.random() * 90);
+        this.resistance = resistance ?? (10 + Math.random() * 90);
         this.species = species; // 'prey' или 'predator'
         this.age = 0;
         this.generation = 0;
@@ -135,7 +140,10 @@ class CellDNA {
 
     getEnvironmentFactor(environment) {
         const tempStress = Math.abs(environment.temperature || 0) / 50;
-        const pressureStress = Math.abs((environment.pressure || 50) - 50) / 50;
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: учитываем как низкое, так и высокое давление
+        const optimalPressure = 50; // Оптимальное давление
+        const pressureDeviation = Math.abs((environment.pressure || 50) - optimalPressure);
+        const pressureStress = pressureDeviation / 50; // Нормализованное отклонение 0-1
         return 1 + (tempStress + pressureStress) * 0.5;
     }
 
@@ -150,10 +158,10 @@ class CellDNA {
             this.species
         );
         
-        newDNA.survival = Math.max(0, Math.min(100, newDNA.survival));
-        newDNA.reproduction = Math.max(0, Math.min(100, newDNA.reproduction));
-        newDNA.adaptation = Math.max(0, Math.min(100, newDNA.adaptation));
-        newDNA.resistance = Math.max(0, Math.min(100, newDNA.resistance));
+        newDNA.survival = Math.max(5, Math.min(100, newDNA.survival));
+        newDNA.reproduction = Math.max(1, Math.min(100, newDNA.reproduction));
+        newDNA.adaptation = Math.max(1, Math.min(100, newDNA.adaptation));
+        newDNA.resistance = Math.max(1, Math.min(100, newDNA.resistance));
         // КРИТИЧНОЕ ИСПРАВЛЕНИЕ БЕССМЕРТИЯ #1: crossover ОБЯЗАТЕЛЬНО сбрасывает age!
         newDNA.generation = Math.max(this.generation, otherDNA.generation) + 1;
         newDNA.age = 0; // НОВОРОЖДЕННЫЕ ОБЯЗАТЕЛЬНО НАЧИНАЮТ С 0!!!
@@ -200,9 +208,9 @@ class CellDNA {
     // Применение генетической памяти (упрощенно)
     applyGeneticMemory() {
         // Упрощаем до простого бонуса за наличие успешных предков
-        if (this.geneticMemory.length > 0) {
-            const avgAncestorFitness = this.geneticMemory.reduce((sum, mem) => sum + mem.fitness, 0) / this.geneticMemory.length;
-            return avgAncestorFitness * 0.1; // маленький бонус к выживанию
+        if (this.geneticMemory && this.geneticMemory.length > 0) {
+            const avgAncestorFitness = this.geneticMemory.reduce((sum, mem) => sum + (mem?.fitness || 0), 0) / this.geneticMemory.length;
+            return isFinite(avgAncestorFitness) ? avgAncestorFitness * 0.1 : 0; // маленький бонус к выживанию
         }
         return 0;
     }
@@ -293,20 +301,49 @@ class AchievementSystem {
     }
     
     unlock(achievementId) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования достижения
+        if (!this.achievements[achievementId]) {
+            console.warn(`Попытка разблокировать несуществующее достижение: ${achievementId}`);
+            return false;
+        }
+        
         if (!this.achievements[achievementId].unlocked) {
             this.achievements[achievementId].unlocked = true;
             this.unlockedCount++;
-            this.showNotification(`Достижение разблокировано: ${this.achievements[achievementId].name}`);
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования game объекта для showNotification
+            if (window.game && window.game.showNotification) {
+                window.game.showNotification(`Достижение разблокировано: ${this.achievements[achievementId].name}`);
+            }
             return true;
         }
         return false;
     }
     
     showNotification(message) {
+        // Ограничиваем количество уведомлений на экране
+        const existingNotifications = document.querySelectorAll('.achievement-notification');
+        if (existingNotifications.length >= 5) {
+            // Удаляем самое старое уведомление
+            existingNotifications[0].remove();
+        }
+        
         const notification = document.createElement('div');
         notification.className = 'achievement-notification';
         notification.textContent = message;
-        document.body.appendChild(notification);
+        
+        // Создаем контейнер для уведомлений, если его нет
+        let container = document.getElementById('notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.position = 'fixed';
+            container.style.top = '10px';
+            container.style.right = '10px';
+            container.style.zIndex = '1000';
+            document.body.appendChild(container);
+        }
+        
+        container.appendChild(notification);
         
         setTimeout(() => {
             // Исправление утечки памяти: проверяем существование элемента
@@ -318,7 +355,13 @@ class AchievementSystem {
     
     getProgress() {
         const total = Object.keys(this.achievements).length;
-        return { unlocked: this.unlockedCount, total: total, percentage: Math.round((this.unlockedCount / total) * 100) };
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от деления на ноль
+        const percentage = total > 0 ? Math.round((this.unlockedCount / total) * 100) : 0;
+        return { 
+            unlocked: this.unlockedCount || 0, 
+            total: total, 
+            percentage: percentage 
+        };
     }
 }
 
@@ -336,9 +379,28 @@ class ExperimentManager {
             data,
             id: Date.now()
         };
-        this.experiments.push(experiment);
-        localStorage.setItem('gameOfLife_experiments', JSON.stringify(this.experiments));
-        return experiment;
+        
+        // Проверяем размер данных перед сохранением
+        try {
+            this.experiments.push(experiment);
+            const dataSize = JSON.stringify(this.experiments).length;
+            
+            // Ограничение 5MB для localStorage
+            if (dataSize > 5 * 1024 * 1024) {
+                // Удаляем самые старые эксперименты
+                this.experiments.sort((a, b) => new Date(a.date) - new Date(b.date));
+                this.experiments = this.experiments.slice(-10); // Оставляем только 10 последних
+                console.warn('Превышен лимит localStorage, старые эксперименты удалены');
+            }
+            
+            localStorage.setItem('gameOfLife_experiments', JSON.stringify(this.experiments));
+            return experiment;
+        } catch (e) {
+            console.error('Ошибка сохранения эксперимента:', e);
+            // Откатываем добавление эксперимента
+            this.experiments.pop();
+            return null;
+        }
     }
 
     loadExperiment(id) {
@@ -347,7 +409,11 @@ class ExperimentManager {
 
     deleteExperiment(id) {
         this.experiments = this.experiments.filter(exp => exp.id !== id);
-        localStorage.setItem('gameOfLife_experiments', JSON.stringify(this.experiments));
+        try {
+            localStorage.setItem('gameOfLife_experiments', JSON.stringify(this.experiments));
+        } catch (e) {
+            console.error('Ошибка при удалении эксперимента:', e);
+        }
     }
 
     loadExperiments() {
@@ -360,34 +426,51 @@ class ExperimentManager {
     }
 
     exportToJSON(data) {
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `gameOfLife_export_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        try {
+            if (typeof Blob === 'undefined') {
+                console.error('Экспорт не поддерживается в этом браузере');
+                return;
+            }
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gameOfLife_export_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error('Ошибка экспорта JSON:', e);
+        }
     }
 
     exportToCSV(evolutionTracker) {
-        let csv = 'Generation,Population,AvgFitness,MaxFitness,Diversity,AvgSurvival,AvgReproduction,AvgAdaptation,AvgResistance\n';
-        
-        const history = evolutionTracker.populationHistory;
-        history.forEach((pop, index) => {
-            const fitness = evolutionTracker.fitnessHistory[index];
-            const diversity = evolutionTracker.diversityHistory[index];
-            const genes = evolutionTracker.geneDistribution[index];
+        try {
+            if (typeof Blob === 'undefined') {
+                console.error('Экспорт не поддерживается в этом браузере');
+                return;
+            }
             
-            csv += `${pop.generation},${pop.count},${fitness?.avgFitness || 0},${fitness?.maxFitness || 0},${diversity?.diversity || 0},${genes?.survival || 0},${genes?.reproduction || 0},${genes?.adaptation || 0},${genes?.resistance || 0}\n`;
-        });
-        
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `gameOfLife_data_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+            let csv = 'Generation,Population,AvgFitness,MaxFitness,Diversity,AvgSurvival,AvgReproduction,AvgAdaptation,AvgResistance\n';
+            
+            const history = evolutionTracker.populationHistory;
+            history.forEach((pop, index) => {
+                const fitness = evolutionTracker.fitnessHistory[index];
+                const diversity = evolutionTracker.diversityHistory[index];
+                const genes = evolutionTracker.geneDistribution[index];
+                
+                csv += `${pop.generation},${pop.count},${fitness?.avgFitness || 0},${fitness?.maxFitness || 0},${diversity?.diversity || 0},${genes?.survival || 0},${genes?.reproduction || 0},${genes?.adaptation || 0},${genes?.resistance || 0}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gameOfLife_data_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error('Ошибка экспорта CSV:', e);
+        }
     }
 }
 
@@ -404,9 +487,22 @@ class EvolutionTracker {
     }
 
     update(cells, generation, environment = {}) {
-        const livingCells = cells.flat().filter(cell => cell && cell.dna);
-        const predators = livingCells.filter(cell => cell.dna.species === 'predator');
-        const prey = livingCells.filter(cell => cell.dna.species === 'prey');
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: безопасное преобразование в плоский массив
+        let livingCells;
+        if (Array.isArray(cells) && cells.length > 0 && Array.isArray(cells[0])) {
+            // Двумерный массив
+            livingCells = cells.flat().filter(cell => cell && cell.dna);
+        } else if (Array.isArray(cells)) {
+            // Уже плоский массив
+            livingCells = cells.filter(cell => cell && cell.dna);
+        } else {
+            // Неверный формат данных
+            console.warn('EvolutionTracker.update: неверный формат cells');
+            livingCells = [];
+        }
+        
+        const predators = livingCells.filter(cell => cell.dna && cell.dna.species === 'predator');
+        const prey = livingCells.filter(cell => cell.dna && cell.dna.species === 'prey');
         
         if (livingCells.length === 0) {
             this.populationHistory.push({ generation, count: 0 });
@@ -423,9 +519,9 @@ class EvolutionTracker {
         });
 
         // Приспособленность
-        const fitnesses = livingCells.map(cell => cell.dna.fitness);
-        const avgFitness = fitnesses.reduce((sum, f) => sum + f, 0) / fitnesses.length;
-        const maxFitness = Math.max(...fitnesses);
+        const fitnesses = livingCells.map(cell => cell.dna?.fitness || 0);
+        const avgFitness = fitnesses.length > 0 ? fitnesses.reduce((sum, f) => sum + f, 0) / fitnesses.length : 0;
+        const maxFitness = fitnesses.length > 0 ? Math.max(...fitnesses) : 0;
         
         this.fitnessHistory.push({
             generation,
@@ -449,10 +545,10 @@ class EvolutionTracker {
 
         // Распределение генов
         if (livingCells.length > 0) {
-            const avgSurvival = livingCells.reduce((sum, cell) => sum + cell.dna.survival, 0) / livingCells.length;
-            const avgReproduction = livingCells.reduce((sum, cell) => sum + cell.dna.reproduction, 0) / livingCells.length;
-            const avgAdaptation = livingCells.reduce((sum, cell) => sum + cell.dna.adaptation, 0) / livingCells.length;
-            const avgResistance = livingCells.reduce((sum, cell) => sum + cell.dna.resistance, 0) / livingCells.length;
+            const avgSurvival = livingCells.reduce((sum, cell) => sum + (cell.dna?.survival || 0), 0) / livingCells.length;
+            const avgReproduction = livingCells.reduce((sum, cell) => sum + (cell.dna?.reproduction || 0), 0) / livingCells.length;
+            const avgAdaptation = livingCells.reduce((sum, cell) => sum + (cell.dna?.adaptation || 0), 0) / livingCells.length;
+            const avgResistance = livingCells.reduce((sum, cell) => sum + (cell.dna?.resistance || 0), 0) / livingCells.length;
 
             this.geneDistribution.push({
                 generation,
@@ -470,7 +566,7 @@ class EvolutionTracker {
             pressure: environment.pressure || 50
         });
 
-        // Ограничиваем размер истории
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничиваем размер всех историй
         if (this.populationHistory.length > this.maxHistoryLength) {
             this.populationHistory.shift();
             this.fitnessHistory.shift();
@@ -484,23 +580,36 @@ class EvolutionTracker {
 
     calculateDiversity(cells) {
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: обработка крайних случаев
-        if (!cells || cells.length === 0) return 0;
-        if (cells.length === 1) return 0; // одна клетка = нет разнообразия
-        if (cells.length < 2) return 0;
+        if (!cells || cells.length < 2) return 0; // менее 2 клеток = нет разнообразия
+        
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничение выборки для больших популяций
+        const maxSample = 100; // Максимум 100 клеток для анализа
+        let sampledCells = cells;
+        
+        if (cells.length > maxSample) {
+            // Случайная выборка для оптимизации
+            sampledCells = [];
+            const indices = new Set();
+            while (indices.size < maxSample) {
+                indices.add(Math.floor(Math.random() * cells.length));
+            }
+            indices.forEach(i => sampledCells.push(cells[i]));
+        }
         
         let totalDistance = 0;
         let comparisons = 0;
         let validComparisons = 0;
         
-        for (let i = 0; i < cells.length; i++) {
-            for (let j = i + 1; j < cells.length; j++) {
+        for (let i = 0; i < sampledCells.length; i++) {
+            for (let j = i + 1; j < sampledCells.length; j++) {
                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка валидности клеток и их ДНК
-                if (!cells[i] || !cells[j] || !cells[i].dna || !cells[j].dna) {
+                if (!sampledCells[i] || !sampledCells[j] || 
+                    !sampledCells[i].dna || !sampledCells[j].dna) {
                     continue;
                 }
                 
-                const cell1 = cells[i].dna;
-                const cell2 = cells[j].dna;
+                const cell1 = sampledCells[i].dna;
+                const cell2 = sampledCells[j].dna;
                 
                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка валидности генов
                 const isValidGenes = (dna) => {
@@ -511,7 +620,6 @@ class EvolutionTracker {
                 };
                 
                 if (!isValidGenes(cell1) || !isValidGenes(cell2)) {
-                    console.warn('Найдены некорректные гены при расчете diversity');
                     continue;
                 }
                 
@@ -524,7 +632,6 @@ class EvolutionTracker {
                 
                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка результата на NaN или Infinity
                 if (isNaN(distance) || !isFinite(distance)) {
-                    console.warn('Некорректное расстояние в calculateDiversity:', distance);
                     continue;
                 }
                 
@@ -536,7 +643,6 @@ class EvolutionTracker {
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: используем validComparisons вместо comparisons
         if (validComparisons === 0) {
-            console.warn('Нет валидных сравнений для расчета diversity');
             return 0;
         }
         
@@ -544,7 +650,6 @@ class EvolutionTracker {
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: финальная проверка результата
         if (isNaN(avgDistance) || !isFinite(avgDistance)) {
-            console.error('Некорректный результат calculateDiversity:', avgDistance);
             return 0;
         }
         
@@ -554,6 +659,9 @@ class EvolutionTracker {
 
 class GameOfLife {
     constructor() {
+        // Флаг отладки для контроля вывода в консоль
+        this.debugMode = false;
+        
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования DOM элементов
         this.canvas = document.getElementById('gameGrid');
         if (!this.canvas) {
@@ -680,7 +788,6 @@ class GameOfLife {
         
         this.achievementSystem.unlock('mass_extinction');
         this.soundSystem.playSound(150, 1.0, 'sawtooth');
-        this.startCatastropheTimer();
         
         const notifications = [
             'Мутационная катастрофа! Массовые мутации по всей популяции!',
@@ -767,27 +874,43 @@ class GameOfLife {
         if (!this.symbiosisSystem.active) return;
         
         try {
-            console.log('Обрабатываем симбиоз...');
             for (let x = 0; x < this.gridWidth; x++) {
                 for (let y = 0; y < this.gridHeight; y++) {
                     // Исправление типов: проверяем что клетка - объект, а не boolean
                 if (this.grid[x][y] && typeof this.grid[x][y] === 'object' && this.grid[x][y].dna) {
                         const neighbors = this.getNeighbors(x, y);
+                        // Симбиоз основан на symbiosisCapacity, а не на species
                         const symbioticNeighbors = neighbors.filter(n => 
                             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка границ массива
                             n.x >= 0 && n.x < this.gridWidth && 
                             n.y >= 0 && n.y < this.gridHeight &&
                             this.grid[n.x] && this.grid[n.x][n.y] && 
                             this.grid[n.x][n.y].dna && 
-                            this.grid[n.x][n.y].dna.species === 'symbiotic'
+                            this.grid[n.x][n.y].dna.symbiosisCapacity > 75 // Высокая способность к симбиозу
                         );
                         
-                        if (symbioticNeighbors.length > 0) {
-                            console.log(`Симбиоз: клетка ${x},${y} получает энергию от ${symbioticNeighbors.length} соседей`);
-                            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничиваем энергию от симбиоза максимумом 100
-                            const energyGain = this.symbiosisSystem.benefit * symbioticNeighbors.length;
-                            this.grid[x][y].dna.energy = Math.min(100, this.grid[x][y].dna.energy + energyGain);
+                        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка минимальной дистанции и энергии
+                        if (symbioticNeighbors.length > 0 && 
+                            this.grid[x][y].dna.symbiosisCapacity > 50 &&
+                            this.grid[x][y].dna.energy > 10) { // Минимальная энергия для симбиоза
+                            
+                            // Обе клетки должны иметь способность к симбиозу
+                            const energyGain = this.symbiosisSystem.benefit * symbioticNeighbors.length * 
+                                             (this.grid[x][y].dna.symbiosisCapacity / 100);
+                            
+                            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничение максимального прироста энергии
+                            const maxGain = Math.min(energyGain, 10); // Макс +10 энергии за ход
+                            this.grid[x][y].dna.energy = Math.min(100, this.grid[x][y].dna.energy + maxGain);
                             this.grid[x][y].dna.achievements.add('symbiotic_partner');
+                            
+                            // Симбиоз взаимовыгоден
+                            symbioticNeighbors.forEach(n => {
+                                if (this.grid[n.x] && this.grid[n.x][n.y] && this.grid[n.x][n.y].dna) {
+                                    const partnerGain = Math.min(this.symbiosisSystem.benefit * 0.5, 5);
+                                    this.grid[n.x][n.y].dna.energy = Math.min(100, 
+                                        this.grid[n.x][n.y].dna.energy + partnerGain);
+                                }
+                            });
                         }
                     }
                 }
@@ -875,16 +998,29 @@ class GameOfLife {
     }
 
     resizeGrid(newSize) {
-        this.gridWidth = newSize;
-        this.gridHeight = newSize;
-        this.cellSize = Math.min(500 / newSize, 20);
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: валидация размера сетки
+        const validSize = Math.max(10, Math.min(100, parseInt(newSize) || 50));
+        
+        this.gridWidth = validSize;
+        this.gridHeight = validSize;
+        this.cellSize = Math.min(500 / validSize, 20);
+        
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: правильный порядок действий при изменении размера
+        this.stop(); // Останавливаем симуляцию
         this.initializeGrid();
         this.setupCanvas();
+        
+        // Сбрасываем состояние
         this.generation = 0;
         this.evolutionTracker = new EvolutionTracker();
+        
+        // Обновляем UI
         this.updateStats();
         this.draw();
         this.updateCharts();
+        
+        // Синхронизируем состояние UI
+        this.syncUIState();
     }
 
     bindEvents() {
@@ -1022,8 +1158,11 @@ class GameOfLife {
         document.getElementById('killCellBtn')?.addEventListener('click', () => this.killSelectedCell());
 
         // Canvas events
-        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
-        this.canvas.addEventListener('mousemove', (e) => this.handleCanvasHover(e));
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: сохраняем ссылки на обработчики для удаления
+        this.canvasClickHandler = (e) => this.handleCanvasClick(e);
+        this.canvasHoverHandler = (e) => this.handleCanvasHover(e);
+        this.canvas.addEventListener('click', this.canvasClickHandler);
+        this.canvas.addEventListener('mousemove', this.canvasHoverHandler);
 
         // Pattern buttons
         document.querySelectorAll('.btn-pattern').forEach(btn => {
@@ -1033,8 +1172,8 @@ class GameOfLife {
             });
         });
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: сохраняем ссылку на обработчик клавиш
+        this.keydownHandler = (e) => {
             switch(e.code) {
                 case 'Space':
                     e.preventDefault();
@@ -1048,8 +1187,10 @@ class GameOfLife {
                     break;
                 case 'KeyE':
                     const evolutionCheckbox = document.getElementById('evolutionMode');
-                    evolutionCheckbox.checked = !evolutionCheckbox.checked;
-                    evolutionCheckbox.dispatchEvent(new Event('change'));
+                    if (evolutionCheckbox) {
+                        evolutionCheckbox.checked = !evolutionCheckbox.checked;
+                        evolutionCheckbox.dispatchEvent(new Event('change'));
+                    }
                     break;
                 case 'KeyS':
                     if (e.ctrlKey) {
@@ -1061,7 +1202,9 @@ class GameOfLife {
                     this.toggleTheme();
                     break;
             }
-        });
+        };
+        // Keyboard shortcuts
+        document.addEventListener('keydown', this.keydownHandler);
         
         // ИИ-помощник
     }
@@ -1256,26 +1399,35 @@ class GameOfLife {
     addPredators() {
         let predatorsAdded = 0;
         let attempts = 0;
-        const maxAttempts = 100;
+        const targetPredators = 5;
+        const maxAttempts = Math.min(100, this.gridWidth * this.gridHeight); // Ограничиваем размером поля
+        
+        // Проверяем есть ли вообще свободное место
+        const emptyCells = this.getAllEmptyCells();
+        if (emptyCells.length === 0) {
+            console.warn('Нет свободного места для добавления хищников');
+            return;
+        }
         
         // Случайное размещение хищников по всему полю
-        while (predatorsAdded < 5 && attempts < maxAttempts) {
-            const x = Math.floor(Math.random() * this.gridWidth);
-            const y = Math.floor(Math.random() * this.gridHeight);
+        while (predatorsAdded < targetPredators && attempts < maxAttempts && emptyCells.length > 0) {
+            const randomIndex = Math.floor(Math.random() * emptyCells.length);
+            const {x, y} = emptyCells[randomIndex];
             
-            if (!this.grid[x][y]) {
-                const predatorDNA = new CellDNA(80, 60, 70, 50, 'predator');
-                predatorDNA.migrationTendency = 80; // Хищники более мобильны
-                this.grid[x][y] = {
-                    dna: predatorDNA
-                };
-                predatorsAdded++;
-                console.log(`🦎 Добавлен мобильный хищник в (${x},${y}) с миграцией ${predatorDNA.migrationTendency}`);
-            }
+            const predatorDNA = new CellDNA(80, 60, 70, 50, 'predator');
+            predatorDNA.migrationTendency = 80; // Хищники более мобильны
+            this.grid[x][y] = {
+                dna: predatorDNA
+            };
+            predatorsAdded++;
+            console.log(`🦎 Добавлен мобильный хищник в (${x},${y}) с миграцией ${predatorDNA.migrationTendency}`);
+            
+            // Удаляем использованную ячейку из списка
+            emptyCells.splice(randomIndex, 1);
             attempts++;
         }
         
-        console.log(`🦎 Добавлено ${predatorsAdded} хищников из 5 попыток`);
+        console.log(`🦎 Добавлено ${predatorsAdded} хищников`);
         this.updateStats();
         this.draw();
     }
@@ -1508,10 +1660,27 @@ class GameOfLife {
     }
 
     loadExperimentData(data) {
-        this.generation = data.generation || 0;
-        this.grid = data.grid || [];
-        this.environment = data.environment || { temperature: 0, pressure: 50 };
-        this.evolutionTracker = Object.assign(new EvolutionTracker(), data.evolutionTracker);
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: валидация загружаемых данных
+        if (!data || typeof data !== 'object') {
+            throw new Error('Некорректные данные эксперимента');
+        }
+        
+        this.generation = Math.max(0, parseInt(data.generation) || 0);
+        this.grid = Array.isArray(data.grid) ? data.grid : [];
+        
+        // Валидация среды
+        this.environment = {
+            temperature: Math.max(-50, Math.min(50, parseFloat(data.environment?.temperature) || 0)),
+            pressure: Math.max(0, Math.min(100, parseFloat(data.environment?.pressure) || 50))
+        };
+        
+        // Безопасное восстановление эволюционного трекера
+        try {
+            this.evolutionTracker = Object.assign(new EvolutionTracker(), data.evolutionTracker);
+        } catch (e) {
+            console.warn('Ошибка восстановления эволюционного трекера, создаем новый');
+            this.evolutionTracker = new EvolutionTracker();
+        }
         
         if (data.settings) {
             this.evolutionMode = data.settings.evolutionMode;
@@ -1565,10 +1734,19 @@ class GameOfLife {
     selectForBreeding() {
         if (!this.selectedCell || !this.selectedCell.dna) return;
         
-        this.breedingSelection.push(this.selectedCell);
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка на дубликаты в селекции
+        const alreadySelected = this.breedingSelection.some(cell => 
+            cell.x === this.selectedCell.x && cell.y === this.selectedCell.y
+        );
         
-        if (this.breedingSelection.length >= 2) {
-            this.breedCells();
+        if (!alreadySelected) {
+            this.breedingSelection.push(this.selectedCell);
+            
+            if (this.breedingSelection.length >= 2) {
+                this.breedCells();
+            }
+        } else {
+            this.showNotification('Клетка уже выбрана для размножения', 'warning');
         }
         
         this.updateBreedingDisplay();
@@ -1592,8 +1770,19 @@ class GameOfLife {
     }
 
     breedCells() {
+        if (this.breedingSelection.length < 2) return;
+        
         const parent1 = this.breedingSelection[0];
         const parent2 = this.breedingSelection[1];
+        
+        // Проверяем валидность родителей
+        if (!parent1 || !parent1.dna || !parent2 || !parent2.dna) {
+            console.error('Недопустимые родители для разведения');
+            this.breedingSelection = [];
+            this.updateBreedingDisplay();
+            return;
+        }
+        
         const offspring = parent1.dna.crossover(parent2.dna);
         
         // Находим место для потомка
@@ -1602,6 +1791,8 @@ class GameOfLife {
             const randomEmpty = emptyCells[Math.floor(Math.random() * emptyCells.length)];
             this.grid[randomEmpty.x][randomEmpty.y] = { dna: offspring };
             this.showNotification('Создано потомство!', 'success');
+        } else {
+            this.showNotification('Нет места для потомства!', 'error');
         }
         
         this.breedingSelection = [];
@@ -1613,9 +1804,9 @@ class GameOfLife {
     killSelectedCell() {
         if (!this.selectedCell) return;
         
-        // Исправление: используем координаты вместо ссылок на объекты
-        if (this.selectedCellCoords && this.selectedCellCoords.x !== undefined && this.selectedCellCoords.y !== undefined) {
-            const {x, y} = this.selectedCellCoords;
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: используем координаты из selectedCell
+        if (this.selectedCell.x !== undefined && this.selectedCell.y !== undefined) {
+            const {x, y} = this.selectedCell;
             if (x >= 0 && x < this.gridWidth && y >= 0 && y < this.gridHeight && this.grid[x][y]) {
                 this.grid[x][y] = null;
                 this.selectedCell = null;
@@ -1654,9 +1845,16 @@ class GameOfLife {
         const empty = [];
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: пропускаем центральную клетку
+                if (dx === 0 && dy === 0) continue;
+                
                 const x = centerX + dx;
                 const y = centerY + dy;
-                if (x >= 0 && x < this.gridWidth && y >= 0 && y < this.gridHeight && !this.grid[x][y]) {
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: дополнительная проверка на границы и наличие grid
+                if (x >= 0 && x < this.gridWidth && 
+                    y >= 0 && y < this.gridHeight && 
+                    this.grid && this.grid[x] && 
+                    !this.grid[x][y]) {
                     empty.push({ x, y });
                 }
             }
@@ -1719,8 +1917,9 @@ class GameOfLife {
                     this.grid[x][y] = {
                         dna: new CellDNA(undefined, undefined, undefined, undefined, species)
                     };
-                    // Сохраняем координаты для селекции
-                    this.selectedCell = { ...this.grid[x][y], x, y };
+                    // Сохраняем ссылку на клетку и координаты отдельно
+                    this.selectedCell = this.grid[x][y];
+                    this.selectedCellCoords = {x, y};
                     console.log('Создана новая клетка:', species);
                 }
                 
@@ -1770,9 +1969,12 @@ class GameOfLife {
             
             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: безопасная проверка существования grid и клетки
             if (this.evolutionMode && this.grid && this.grid[x] && this.grid[x][y]) {
-                this.selectedCell = this.grid[x][y];
-                this.selectedCell.x = x;
-                this.selectedCell.y = y;
+                // Не модифицируем объект клетки напрямую
+                this.hoveredCellInfo = {
+                    cell: this.grid[x][y],
+                    x: x,
+                    y: y
+                };
                 this.updateCellInfo();
             }
             
@@ -1785,13 +1987,17 @@ class GameOfLife {
 
     updateCellInfo() {
         const cellInfoDiv = document.getElementById('selectedCellDNA');
+        if (!cellInfoDiv) return;
         
-        if (!this.selectedCell || !this.selectedCell.dna) {
+        // Используем hoveredCellInfo вместо selectedCell для hover
+        const cellInfo = this.hoveredCellInfo || (this.selectedCell ? {cell: this.selectedCell} : null);
+        
+        if (!cellInfo || !cellInfo.cell || !cellInfo.cell.dna) {
             cellInfoDiv.innerHTML = '<p>Выберите живую клетку</p>';
             return;
         }
 
-        const dna = this.selectedCell.dna;
+        const dna = cellInfo.cell.dna;
         const speciesIcon = dna.species === 'predator' ? '🦎' : '🐛';
         
         cellInfoDiv.innerHTML = `
@@ -1886,13 +2092,16 @@ class GameOfLife {
         // Обновление FPS с защитой от утечек памяти
         this.frameCount++;
         if (currentTime - this.fpsLastTime >= 1000) {
-            this.currentFPS = this.frameCount;
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: правильный расчет FPS
+            const timeDiff = (currentTime - this.fpsLastTime) / 1000; // секунды
+            this.currentFPS = this.frameCount / timeDiff;
             this.frameCount = 0;
             this.fpsLastTime = currentTime;
             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: безопасное обновление FPS элемента
             const fpsElement = document.getElementById('fps');
             if (fpsElement) {
-                fpsElement.textContent = this.currentFPS;
+                // Показываем реальный FPS, ограниченный скоростью игры
+                fpsElement.textContent = Math.min(this.currentFPS, safeSpeed).toFixed(1);
             }
         }
 
@@ -1902,11 +2111,16 @@ class GameOfLife {
             this.lastTime = currentTime - (deltaTime % interval);
         }
 
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от утечек анимации
-        if (this.isPlaying && !this.animationId) { // Проверяем что анимация еще не запущена
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от race conditions в анимации
+        if (this.isPlaying) {
+            // Сохраняем ID сразу, чтобы избежать двойного запуска
             this.animationId = requestAnimationFrame(() => {
-                this.animationId = null; // Очищаем ID перед вызовом
-                this.animate();
+                // Проверяем состояние после получения кадра
+                if (this.isPlaying) {
+                    this.animate();
+                } else {
+                    this.animationId = null;
+                }
             });
         }
     }
@@ -2056,8 +2270,11 @@ class GameOfLife {
                     
                     // Хищники охотятся на травоядных
                     if (currentCell.dna.species === 'predator' && this.predatorMode) {
+                        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: хищники не могут охотиться на других хищников
                         const prey = neighbors.filter(n => n.dna.species === 'prey');
-                        if (prey.length > 0 && Math.random() < 0.3) { // 30% шанс поймать жертву
+                        if (prey.length > 0 && 
+                            currentCell.dna.energy > 20 && // Минимальная энергия для охоты
+                            Math.random() < 0.3) { // 30% шанс поймать жертву
                             // Выбираем случайную жертву
                             const victim = prey[Math.floor(Math.random() * prey.length)];
                             
@@ -2077,7 +2294,7 @@ class GameOfLife {
                             
                             if (victimFound) {
                                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверяем что жертва еще не убита другим хищником
-                                if (this.nextGrid[victimX][victimY] !== null) {
+                                if (this.nextGrid[victimX][victimY]) {
                                     // Безопасно "убиваем" жертву в nextGrid
                                     this.nextGrid[victimX][victimY] = null;
                                     
@@ -2329,13 +2546,14 @@ class GameOfLife {
             });
         });
         
-        // Смертность от болезни
+        // Смертность от болезни - собираем координаты для удаления
+        const cellsToKill = [];
         for (let x = 0; x < this.gridWidth; x++) {
             for (let y = 0; y < this.gridHeight; y++) {
                 if (this.grid[x][y] && this.grid[x][y].dna && 
                     this.grid[x][y].dna.isInfected() && 
                     Math.random() < this.diseaseSystem.mortalityRate) {
-                    this.grid[x][y] = null;
+                    cellsToKill.push({x, y});
                     console.log(`💀 Клетка (${x},${y}) умерла от болезни`);
                     deaths++;
                 } else if (this.grid[x][y] && this.grid[x][y].dna) {
@@ -2343,6 +2561,11 @@ class GameOfLife {
                 }
             }
         }
+        
+        // Удаляем мертвые клетки после итерации
+        cellsToKill.forEach(cell => {
+            this.grid[cell.x][cell.y] = null;
+        });
         
         if (deaths > 0) {
             console.log(`🦠 Болезни убили ${deaths} клеток в этом поколении`);
@@ -2359,19 +2582,24 @@ class GameOfLife {
                 if (this.grid[x][y] && this.grid[x][y].dna && 
                     Math.random() < (this.grid[x][y].dna.migrationTendency / 100) * this.migrationSystem.strength) {
                     migratingCells.push({x, y, cell: this.grid[x][y]});
-                    this.grid[x][y] = null;
+                    // НЕ удаляем клетку сразу - только пометим для миграции
                 }
             }
         }
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ МИГРАЦИИ: защита от потери клеток
         migratingCells.forEach(migrant => {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: логика миграции учитывает адаптацию клетки
+            const migrationRange = Math.ceil(migrant.cell.dna.adaptation / 20); // 1-5 клеток в зависимости от адаптации
             const newX = Math.max(0, Math.min(this.gridWidth - 1, 
-                migrant.x + Math.floor((Math.random() - 0.5) * 6)));
+                migrant.x + Math.floor((Math.random() - 0.5) * migrationRange * 2)));
             const newY = Math.max(0, Math.min(this.gridHeight - 1, 
-                migrant.y + Math.floor((Math.random() - 0.5) * 6)));
+                migrant.y + Math.floor((Math.random() - 0.5) * migrationRange * 2)));
             
+            // Проверяем, можем ли мигрировать
             if (!this.grid[newX][newY]) {
+                // Удаляем со старого места только после нахождения нового
+                this.grid[migrant.x][migrant.y] = null;
                 this.grid[newX][newY] = migrant.cell;
                 migrant.cell.dna.achievements.add('migrant');
                 console.log(`🦅 Миграция: (${migrant.x},${migrant.y}) → (${newX},${newY})`);
@@ -2383,16 +2611,15 @@ class GameOfLife {
                         const fallbackX = Math.max(0, Math.min(this.gridWidth - 1, newX + dx));
                         const fallbackY = Math.max(0, Math.min(this.gridHeight - 1, newY + dy));
                         if (!this.grid[fallbackX][fallbackY]) {
+                            // Удаляем только после нахождения места
+                            this.grid[migrant.x][migrant.y] = null;
                             this.grid[fallbackX][fallbackY] = migrant.cell;
                             migrant.cell.dna.achievements.add('migrant');
                             placed = true;
                         }
                     }
                 }
-                // Крайний случай: возвращаем на старое место
-                if (!placed) {
-                    this.grid[migrant.x][migrant.y] = migrant.cell;
-                }
+                // Если не нашли место - клетка остается на месте
             }
         });
     }
@@ -2434,7 +2661,7 @@ class GameOfLife {
         
         // Более сильное влияние факторов среды на выживаемость с защитой от деления на ноль
         const tempStress = Math.abs(this.environment.temperature || 0) / 50; // 0 to 1
-        const pressureStress = Math.abs((this.environment.pressure || 50) - 50) / 50; // 0 to 1
+        const pressureStress = Math.max(0, (this.environment.pressure || 0) - 20) / 80; // 0 to 1
         
         // ОТЛАДКА: принудительно логируем расчет стресса
         if (Math.abs(this.environment.temperature) > 40 || Math.abs(this.environment.pressure - 50) > 40) {
@@ -2506,7 +2733,7 @@ class GameOfLife {
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от некорректных environment значений
         const tempStress = Math.abs(this.environment?.temperature || 0) / 50; // 0 to 1
-        const pressureStress = Math.abs((this.environment?.pressure || 50) - 50) / 50; // 0 to 1
+        const pressureStress = Math.max(0, (this.environment?.pressure || 0) - 20) / 80; // 0 to 1
         
         // ЛОГИЧЕСКАЯ ОШИБКА ИСПРАВЛЕНА: экстремальные условия должны почти полностью блокировать размножение
         let environmentalFactor;
@@ -2597,7 +2824,7 @@ class GameOfLife {
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: более безопасная обработка границ
         if (typeof x !== 'number' || typeof y !== 'number' || x < 0 || y < 0 || 
             x >= this.gridWidth || y >= this.gridHeight) {
-            console.warn(`Некорректные координаты в getNeighbors: (${x}, ${y})`);
+            if (this.debugMode) console.warn(`Некорректные координаты в getNeighbors: (${x}, ${y})`);
             return [];
         }
         
@@ -2621,7 +2848,7 @@ class GameOfLife {
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: улучшенная проверка границ и типов
         if (typeof x !== 'number' || typeof y !== 'number' || x < 0 || y < 0 || 
             x >= this.gridWidth || y >= this.gridHeight) {
-            console.warn(`Некорректные координаты в getNeighborsEvolution: (${x}, ${y})`);
+            if (this.debugMode) console.warn(`Некорректные координаты в getNeighborsEvolution: (${x}, ${y})`);
             return [];
         }
         
@@ -2721,40 +2948,23 @@ class GameOfLife {
                 console.warn('Элемент generation не найден для обновления статистики');
             }
             
-            let aliveCells = 0, predators = 0, prey = 0;
-            let totalFitness = 0;
-        
-        for (let x = 0; x < this.gridWidth; x++) {
-            for (let y = 0; y < this.gridHeight; y++) {
-                if (this.grid[x][y]) {
-                    aliveCells++;
-                    if (this.evolutionMode && this.grid[x][y].dna) {
-                        totalFitness += this.grid[x][y].dna.fitness;
-                        if (this.grid[x][y].dna.species === 'predator') {
-                            predators++;
-                        } else {
-                            prey++;
-                        }
-                    }
-                }
-            }
-        }
+            // Используем общий метод calculateStats для избежания дублирования
+            const stats = this.calculateStats();
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от null DOM элементов
         const aliveCellsElement = document.getElementById('aliveCells');
         if (aliveCellsElement) {
-            aliveCellsElement.textContent = aliveCells;
+            aliveCellsElement.textContent = stats.population;
         }
         
-        if (this.evolutionMode && aliveCells > 0) {
-            const avgFitness = totalFitness / aliveCells;
+        if (this.evolutionMode && stats.population > 0) {
             const avgFitnessElement = document.getElementById('avgFitness');
             if (avgFitnessElement) {
-                avgFitnessElement.textContent = (avgFitness * 100).toFixed(1) + '%';
+                avgFitnessElement.textContent = (stats.averageFitness * 100).toFixed(1) + '%';
             }
             
             const diversity = this.evolutionTracker.calculateDiversity(
-                this.grid.flat().filter(cell => cell && typeof cell === 'object' && cell.dna)
+                this.getAllCells()
             );
             const diversityElement = document.getElementById('diversity');
             if (diversityElement) {
@@ -2765,8 +2975,19 @@ class GameOfLife {
         if (this.predatorMode) {
             const predatorCountElement = document.getElementById('predatorCount');
             const preyCountElement = document.getElementById('preyCount');
-            if (predatorCountElement) predatorCountElement.textContent = predators;
-            if (preyCountElement) preyCountElement.textContent = prey;
+            if (predatorCountElement) predatorCountElement.textContent = stats.predators;
+            if (preyCountElement) preyCountElement.textContent = stats.prey;
+        }
+        
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: обновление показателей окружающей среды
+        const temperatureDisplay = document.getElementById('currentTemperature');
+        const pressureDisplay = document.getElementById('currentPressure');
+        
+        if (temperatureDisplay) {
+            temperatureDisplay.textContent = this.environment.temperature + '°C';
+        }
+        if (pressureDisplay) {
+            pressureDisplay.textContent = this.environment.pressure + ' атм';
         }
         
         // Обновляем новые элементы
@@ -2922,10 +3143,8 @@ class GameOfLife {
     drawEnvironmentBackground() {
         if (!this.evolutionMode) return;
         
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования environment
-        if (!this.environment || typeof this.environment.temperature === 'undefined' || 
-            typeof this.environment.pressure === 'undefined') {
-            console.warn('Environment данные недоступны для рендеринга фона');
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: environment всегда инициализирован в конструкторе
+        if (!this.environment) {
             return;
         }
         
@@ -2999,13 +3218,13 @@ class GameOfLife {
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от некорректных данных графика
         const ctx = this.charts.population;
         if (!ctx) {
-            console.warn('График популяции недоступен для отрисовки');
+            if (this.debugMode) console.warn('График популяции недоступен для отрисовки');
             return;
         }
         
         const canvas = ctx.canvas;
         if (!canvas || canvas.width <= 0 || canvas.height <= 0) {
-            console.warn('Canvas графика популяции имеет некорректные размеры');
+            if (this.debugMode) console.warn('Canvas графика популяции имеет некорректные размеры');
             return;
         }
         
@@ -3013,7 +3232,7 @@ class GameOfLife {
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка данных эволюции
         if (!this.evolutionTracker || !this.evolutionTracker.populationHistory) {
-            console.warn('Данные популяции недоступны для графика');
+            if (this.debugMode) console.warn('Данные популяции недоступны для графика');
             return;
         }
         
@@ -3023,7 +3242,7 @@ class GameOfLife {
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от некорректных данных
         const validData = data.filter(d => d && typeof d.count === 'number' && !isNaN(d.count) && isFinite(d.count));
         if (validData.length < 2) {
-            console.warn('Недостаточно валидных данных популяции для графика');
+            if (this.debugMode) console.warn('Недостаточно валидных данных популяции для графика');
             return;
         }
 
@@ -3036,7 +3255,7 @@ class GameOfLife {
         
         validData.forEach((point, index) => {
             const x = (index / Math.max(validData.length - 1, 1)) * canvas.width;
-            const y = canvas.height - (point.count / maxPop) * canvas.height;
+            const y = canvas.height - (Math.min(point.count / maxPop, 1)) * canvas.height;
             
             if (index === 0) {
                 ctx.moveTo(x, y);
@@ -3063,8 +3282,11 @@ class GameOfLife {
         const data = this.evolutionTracker.fitnessHistory;
         if (data.length < 2) return;
 
-        const maxFitness = Math.max(...data.map(d => Math.max(d.avgFitness, d.maxFitness)));
-        if (maxFitness === 0) return;
+        const validData = data.filter(d => d && isFinite(d.avgFitness) && isFinite(d.maxFitness));
+        if (validData.length === 0) return;
+        
+        const maxFitness = Math.max(...validData.map(d => Math.max(d.avgFitness || 0, d.maxFitness || 0)));
+        if (maxFitness === 0 || !isFinite(maxFitness)) return;
         
         // Средняя приспособленность
         ctx.strokeStyle = '#28a745';
@@ -3422,7 +3644,11 @@ class GameOfLife {
             this.achievementSystem.unlock('perfect_dna');
         }
         
-        if (stats.predators > 0 && stats.prey > 0 && !this.achievementSystem.achievements.symbiosis_master.unlocked) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка симбиоза по правильным критериям
+        const symbioticCells = this.getAllCells().filter(cell => 
+            cell.dna.symbiosisCapacity > 75 && cell.dna.achievements.has('symbiotic_partner')
+        );
+        if (symbioticCells.length >= 2 && !this.achievementSystem.achievements.symbiosis_master.unlocked) {
             this.achievementSystem.unlock('symbiosis_master');
         }
     }
@@ -3493,7 +3719,7 @@ class GameOfLife {
         this.scientificMetrics = {
             shannonDiversity: shannon,
             simpsonIndex: 1 - simpson,
-            evenness: Object.keys(species).length > 1 ? shannon / Math.log2(Object.keys(species).length) : 1,
+            evenness: Object.keys(species).length > 1 ? shannon / Math.log2(Object.keys(species).length) : 0,
             speciesRichness: Object.keys(species).length
         };
     }
@@ -3626,8 +3852,18 @@ class GameOfLife {
     updateAchievementDisplay() {
         try {
             console.log('updateAchievementDisplay вызвана');
+            
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка инициализации achievementSystem
+            if (!this.achievementSystem) {
+                console.warn('achievementSystem не инициализирована');
+                return;
+            }
+            
             const progress = this.achievementSystem.getProgress();
-            document.getElementById('achievementCount').textContent = `${progress.unlocked}/${progress.total}`;
+            const achievementCountElement = document.getElementById('achievementCount');
+            if (achievementCountElement) {
+                achievementCountElement.textContent = `${progress.unlocked}/${progress.total}`;
+            }
         
         // Показываем последние 3 достижения
         const unlockedAchievements = Object.keys(this.achievementSystem.achievements)
@@ -3682,12 +3918,91 @@ class GameOfLife {
                 safeUpdateCheckbox('soundEffects', this.soundSystem.enabled);
             }
             
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: синхронизация слайдеров
+            const safeUpdateSlider = (id, value, displayId) => {
+                const element = document.getElementById(id);
+                const display = document.getElementById(displayId);
+                if (element) {
+                    element.value = value;
+                    if (display) {
+                        if (id === 'temperature') {
+                            display.textContent = value + '°C';
+                        } else if (id === 'pressure') {
+                            display.textContent = value + ' атм';
+                        } else if (id === 'mutationRate') {
+                            display.textContent = value;
+                        } else if (id === 'speed') {
+                            display.textContent = value + ' мс';
+                        }
+                    }
+                }
+            };
+            
+            // Синхронизируем все слайдеры
+            safeUpdateSlider('mutationRate', this.mutationRate, 'mutationRateValue');
+            safeUpdateSlider('temperature', this.temperature, 'temperatureValue');
+            safeUpdateSlider('pressure', this.pressure, 'pressureValue');
+            safeUpdateSlider('speed', this.speed, 'speedValue');
+            
             // Обновляем UI в соответствии с текущим состоянием
             this.toggleEvolutionUI();
             this.togglePredatorUI();
         } catch (error) {
             console.error('Ошибка синхронизации UI состояния:', error);
         }
+    }
+    
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: метод для очистки всех ресурсов
+    destroy() {
+        console.log('Очистка ресурсов GameOfLife...');
+        
+        // Останавливаем анимацию
+        this.stop();
+        
+        // Очищаем таймеры
+        if (this.autoSaveInterval) {
+            clearInterval(this.autoSaveInterval);
+            this.autoSaveInterval = null;
+        }
+        
+        if (this.catastropheTimer) {
+            clearTimeout(this.catastropheTimer);
+            this.catastropheTimer = null;
+        }
+        
+        // Удаляем обработчики событий
+        if (this.canvas) {
+            if (this.canvasClickHandler) {
+                this.canvas.removeEventListener('click', this.canvasClickHandler);
+            }
+            if (this.canvasHoverHandler) {
+                this.canvas.removeEventListener('mousemove', this.canvasHoverHandler);
+            }
+        }
+        
+        if (this.keydownHandler) {
+            document.removeEventListener('keydown', this.keydownHandler);
+        }
+        
+        // Очищаем Web Audio контекст
+        if (this.soundSystem && this.soundSystem.audioContext) {
+            this.soundSystem.audioContext.close();
+        }
+        
+        // Очищаем графики
+        if (this.charts) {
+            Object.values(this.charts).forEach(chart => {
+                if (chart && chart.destroy) {
+                    chart.destroy();
+                }
+            });
+        }
+        
+        // Очищаем массивы
+        this.grid = null;
+        this.nextGrid = null;
+        
+        console.log('Ресурсы успешно очищены');
     }
     
 }
