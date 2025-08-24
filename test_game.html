@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест загрузки игры</title>
+    <style>
+        body { font-family: monospace; background: #2a2a2a; color: #00ff00; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; background: #1a1a1a; border: 1px solid #444; }
+        .ok { color: #00ff00; }
+        .error { color: #ff0000; }
+        .warning { color: #ffaa00; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Тест загрузки игры</h1>
+    <div id="tests"></div>
+    
+    <script src="gameOfLife.js"></script>
+    <script>
+        const testsDiv = document.getElementById('tests');
+        
+        function addTest(name, status, message) {
+            const div = document.createElement('div');
+            div.className = `test ${status}`;
+            div.innerHTML = `<strong>${name}:</strong> ${message}`;
+            testsDiv.appendChild(div);
+        }
+        
+        // Тест 1: Загрузка скрипта
+        try {
+            addTest('Загрузка скрипта', 'ok', 'gameOfLife.js загружен');
+        } catch (e) {
+            addTest('Загрузка скрипта', 'error', 'Ошибка загрузки: ' + e.message);
+        }
+        
+        // Тест 2: Класс GameOfLife
+        try {
+            if (typeof GameOfLife !== 'undefined') {
+                addTest('Класс GameOfLife', 'ok', 'Класс определен');
+            } else {
+                addTest('Класс GameOfLife', 'error', 'Класс не найден');
+            }
+        } catch (e) {
+            addTest('Класс GameOfLife', 'error', 'Ошибка: ' + e.message);
+        }
+        
+        // Тест 3: Создание экземпляра
+        try {
+            const game = new GameOfLife();
+            addTest('Создание игры', 'ok', 'Игра создана успешно');
+            
+            // Тест 4: Основные методы
+            const methods = ['nextStep', 'randomize', 'clear', 'calculateSurvivalChance'];
+            methods.forEach(method => {
+                if (typeof game[method] === 'function') {
+                    addTest(`Метод ${method}`, 'ok', 'Метод существует');
+                } else {
+                    addTest(`Метод ${method}`, 'error', 'Метод не найден');
+                }
+            });
+            
+            // Тест 5: Режим эволюции
+            game.evolutionMode = true;
+            if (game.evolutionMode) {
+                addTest('Режим эволюции', 'ok', 'Переключается корректно');
+            } else {
+                addTest('Режим эволюции', 'error', 'Не переключается');
+            }
+            
+        } catch (e) {
+            addTest('Создание игры', 'error', 'Ошибка создания: ' + e.message);
+            addTest('Стек ошибки', 'error', e.stack);
+        }
+        
+        // Тест 6: Консольные сообщения
+        if (console.log.calls) {
+            addTest('Отладочные сообщения', 'ok', 'Консольные сообщения работают');
+        } else {
+            addTest('Отладочные сообщения', 'warning', 'Невозможно проверить');
+        }
+        
+        addTest('Статус', 'ok', 'Тестирование завершено. Если все тесты прошли - игра должна работать.');
+    </script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест механизмов смерти - Evolution Game of Life</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .test-scenario {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            border-left: 4px solid #667eea;
+        }
+        .test-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .control-group label {
+            font-weight: 600;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.2);
+            outline: none;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .results {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        .death-cause {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .temperature-death { background: rgba(255, 68, 68, 0.3); }
+        .pressure-death { background: rgba(255, 170, 0, 0.3); }
+        .energy-death { background: rgba(220, 53, 69, 0.3); }
+        .age-death { background: rgba(108, 117, 125, 0.3); }
+        .disease-death { background: rgba(102, 16, 242, 0.3); }
+        .predator-death { background: rgba(40, 167, 69, 0.3); }
+        .conway-death { background: rgba(255, 193, 7, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>☠️ Тестирование механизмов смерти клеток</h1>
+        <p>Этот инструмент позволяет проверить все причины смерти клеток в Evolution Game of Life.</p>
+        
+        <div class="test-controls">
+            <div class="control-group">
+                <label for="testSurvival">🛡️ Выживаемость ДНК: <span id="survivalValue">50</span></label>
+                <input type="range" id="testSurvival" min="0" max="100" value="50">
+            </div>
+            <div class="control-group">
+                <label for="testAdaptation">⚡ Адаптация ДНК: <span id="adaptationValue">50</span></label>
+                <input type="range" id="testAdaptation" min="0" max="100" value="50">
+            </div>
+            <div class="control-group">
+                <label for="testEnergy">🔋 Энергия клетки: <span id="energyValue">80</span></label>
+                <input type="range" id="testEnergy" min="0" max="100" value="80">
+            </div>
+            <div class="control-group">
+                <label for="testAge">⏰ Возраст клетки: <span id="ageValue">0</span></label>
+                <input type="range" id="testAge" min="0" max="200" value="0">
+            </div>
+            <div class="control-group">
+                <label for="testTemp">🌡️ Температура: <span id="tempValue">0°C</span></label>
+                <input type="range" id="testTemp" min="-50" max="50" value="0">
+            </div>
+            <div class="control-group">
+                <label for="testPressure">⚡ Давление: <span id="pressureValue">50</span></label>
+                <input type="range" id="testPressure" min="0" max="100" value="50">
+            </div>
+            <div class="control-group">
+                <label for="testNeighbors">👥 Соседи: <span id="neighborsValue">3</span></label>
+                <input type="range" id="testNeighbors" min="0" max="8" value="3">
+            </div>
+        </div>
+        
+        <button onclick="testSurvivalChances()">🧬 Рассчитать шансы выживания</button>
+        <button onclick="runDeathScenarios()">☠️ Протестировать сценарии смерти</button>
+        <button onclick="showDeathMechanisms()">📋 Показать все механизмы смерти</button>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        // Обновление значений слайдеров
+        document.getElementById('testSurvival').addEventListener('input', function(e) {
+            document.getElementById('survivalValue').textContent = e.target.value;
+        });
+        document.getElementById('testAdaptation').addEventListener('input', function(e) {
+            document.getElementById('adaptationValue').textContent = e.target.value;
+        });
+        document.getElementById('testEnergy').addEventListener('input', function(e) {
+            document.getElementById('energyValue').textContent = e.target.value;
+        });
+        document.getElementById('testAge').addEventListener('input', function(e) {
+            document.getElementById('ageValue').textContent = e.target.value;
+        });
+        document.getElementById('testTemp').addEventListener('input', function(e) {
+            document.getElementById('tempValue').textContent = e.target.value + '°C';
+        });
+        document.getElementById('testPressure').addEventListener('input', function(e) {
+            document.getElementById('pressureValue').textContent = e.target.value;
+        });
+        document.getElementById('testNeighbors').addEventListener('input', function(e) {
+            document.getElementById('neighborsValue').textContent = e.target.value;
+        });
+        
+        // Имитация тех же функций что в игре
+        function calculateSurvivalChance(survival, adaptation, energy, age, neighbors, temperature, pressure, species = 'prey') {
+            let baseChance = 0;
+            
+            if (species === 'predator') {
+                baseChance = neighbors <= 1 ? 0.7 : neighbors <= 3 ? 0.9 : 0.6;
+            } else {
+                if (neighbors === 2 || neighbors === 3) {
+                    baseChance = 0.8;
+                } else if (neighbors === 1 || neighbors === 4) {
+                    baseChance = 0.3;
+                } else {
+                    baseChance = 0.05;
+                }
+            }
+
+            const survivalBonus = survival / 100 * 0.5;
+            const adaptationBonus = adaptation / 100 * 0.3;
+            const energyPenalty = (100 - energy) / 100 * 0.2;
+            const agePenalty = Math.min(age / 100, 0.3);
+            
+            // Влияние среды
+            const tempStress = Math.abs(temperature) / 50;
+            const pressureStress = Math.abs(pressure - 50) / 50;
+            const envPenalty = (tempStress * 0.3 + pressureStress * 0.2);
+            
+            // Адаптация снижает воздействие среды
+            const adaptationResistance = (adaptation / 100) * 0.7;
+            const finalEnvPenalty = envPenalty * (1 - adaptationResistance);
+            
+            return Math.max(0.01, Math.min(0.99, baseChance + survivalBonus + adaptationBonus - energyPenalty - agePenalty - finalEnvPenalty));
+        }
+        
+        function testSurvivalChances() {
+            const survival = parseInt(document.getElementById('testSurvival').value);
+            const adaptation = parseInt(document.getElementById('testAdaptation').value);
+            const energy = parseInt(document.getElementById('testEnergy').value);
+            const age = parseInt(document.getElementById('testAge').value);
+            const temperature = parseInt(document.getElementById('testTemp').value);
+            const pressure = parseInt(document.getElementById('testPressure').value);
+            const neighbors = parseInt(document.getElementById('testNeighbors').value);
+            
+            const results = document.getElementById('results');
+            
+            // Тестируем обычную клетку
+            const preyChance = calculateSurvivalChance(survival, adaptation, energy, age, neighbors, temperature, pressure, 'prey');
+            
+            // Тестируем хищника
+            const predatorChance = calculateSurvivalChance(survival, adaptation, energy, age, neighbors, temperature, pressure, 'predator');
+            
+            const preyPercent = (preyChance * 100).toFixed(1);
+            const predatorPercent = (predatorChance * 100).toFixed(1);
+            
+            // Анализируем причины смерти
+            let deathCauses = [];
+            
+            if (energy <= 10) deathCauses.push('🔋 Недостаток энергии');
+            if (Math.abs(temperature) > 30) deathCauses.push('🌡️ Экстремальная температура');
+            if (Math.abs(pressure - 50) > 30) deathCauses.push('⚡ Экстремальное давление');
+            if (age > 150) deathCauses.push('⏰ Старость');
+            if (neighbors < 2 || neighbors > 3) deathCauses.push('👥 Неблагоприятное окружение (правила Конвея)');
+            
+            results.innerHTML = `
+                <h3>🧮 Результаты расчета выживания</h3>
+                <div class="death-cause conway-death">
+                    <strong>🐛 Обычная клетка (жертва):</strong> ${preyPercent}% шанс выжить
+                </div>
+                <div class="death-cause predator-death">
+                    <strong>🦎 Хищная клетка:</strong> ${predatorPercent}% шанс выжить
+                </div>
+                <div class="death-cause">
+                    <strong>⚠️ Факторы риска:</strong><br>
+                    ${deathCauses.length > 0 ? deathCauses.join('<br>') : 'Благоприятные условия'}
+                </div>
+            `;
+        }
+        
+        function runDeathScenarios() {
+            const results = document.getElementById('results');
+            
+            const scenarios = [
+                {
+                    name: 'Замерзание',
+                    params: [50, 50, 80, 20, 3, -50, 50],
+                    class: 'temperature-death'
+                },
+                {
+                    name: 'Перегрев', 
+                    params: [50, 50, 80, 20, 3, 50, 50],
+                    class: 'temperature-death'
+                },
+                {
+                    name: 'Высокое давление',
+                    params: [50, 50, 80, 20, 3, 0, 100],
+                    class: 'pressure-death'
+                },
+                {
+                    name: 'Вакуум',
+                    params: [50, 50, 80, 20, 3, 0, 0],
+                    class: 'pressure-death'
+                },
+                {
+                    name: 'Истощение энергии',
+                    params: [50, 50, 5, 20, 3, 0, 50],
+                    class: 'energy-death'
+                },
+                {
+                    name: 'Старость',
+                    params: [50, 50, 80, 200, 3, 0, 50],
+                    class: 'age-death'
+                },
+                {
+                    name: 'Изоляция',
+                    params: [50, 50, 80, 20, 0, 0, 50],
+                    class: 'conway-death'
+                },
+                {
+                    name: 'Перенаселение',
+                    params: [50, 50, 80, 20, 8, 0, 50],
+                    class: 'conway-death'
+                },
+                {
+                    name: 'Адаптивная клетка в экстриме',
+                    params: [80, 90, 90, 50, 3, -40, 90],
+                    class: 'temperature-death'
+                }
+            ];
+            
+            results.innerHTML = '<h3>☠️ Сценарии смерти</h3>';
+            
+            scenarios.forEach(scenario => {
+                const [survival, adaptation, energy, age, neighbors, temperature, pressure] = scenario.params;
+                const chance = calculateSurvivalChance(survival, adaptation, energy, age, neighbors, temperature, pressure);
+                const percent = (chance * 100).toFixed(1);
+                const deathChance = (100 - percent).toFixed(1);
+                
+                let severity = 'success';
+                if (chance < 0.3) severity = 'error';
+                else if (chance < 0.6) severity = 'warning';
+                
+                results.innerHTML += `
+                    <div class="death-cause ${scenario.class}">
+                        <strong>${scenario.name}:</strong><br>
+                        Выживание: ${percent}% | Смерть: ${deathChance}%<br>
+                        <small>Параметры: выжив=${survival}, адапт=${adaptation}, энерг=${energy}, возр=${age}, соседи=${neighbors}, темп=${temperature}°C, давл=${pressure}</small>
+                    </div>
+                `;
+            });
+        }
+        
+        function showDeathMechanisms() {
+            const results = document.getElementById('results');
+            
+            results.innerHTML = `
+                <h3>📋 Все механизмы смерти в игре</h3>
+                <div class="death-cause conway-death">
+                    <strong>1. Правила Конвея:</strong><br>
+                    • Изоляция: меньше 2 соседей<br>
+                    • Перенаселение: больше 3 соседей<br>
+                    • Применяется во всех режимах
+                </div>
+                <div class="death-cause energy-death">
+                    <strong>2. Энергетическое истощение (Эволюция):</strong><br>
+                    • Энергия ≤ 10 = смерть<br>
+                    • Энергия тратится каждый ход (-5)<br>
+                    • Хищники восстанавливают энергию поеданием
+                </div>
+                <div class="death-cause temperature-death">
+                    <strong>3. Температурный стресс (Эволюция):</strong><br>
+                    • Экстремальные температуры (-50°C до +50°C)<br>
+                    • Снижают шансы выживания до 30%<br>
+                    • Адаптация защищает от стресса среды
+                </div>
+                <div class="death-cause pressure-death">
+                    <strong>4. Стресс давления (Эволюция):</strong><br>
+                    • Давление 0 или 100 атм = стресс<br>
+                    • Снижает шансы выживания до 20%<br>
+                    • Влияет также на размножение
+                </div>
+                <div class="death-cause age-death">
+                    <strong>5. Старение (Эволюция):</strong><br>
+                    • Возраст увеличивается каждый ход<br>
+                    • После 100 поколений штраф до 30%<br>
+                    • Необратимый процесс
+                </div>
+                <div class="death-cause disease-death">
+                    <strong>6. Болезни (Эволюция + Болезни):</strong><br>
+                    • Случайные очаги заражения<br>
+                    • Распространение между соседями<br>
+                    • Смертность 5% за ход для зараженных
+                </div>
+                <div class="death-cause predator-death">
+                    <strong>7. Хищничество (Эволюция + Хищники):</strong><br>
+                    • Хищники поедают жертв (30% шанс)<br>
+                    • Мгновенная смерть жертвы<br>
+                    • Хищник получает +30 энергии
+                </div>
+                <div class="death-cause">
+                    <strong>8. Катастрофы (Эволюция):</strong><br>
+                    • Массовые вымирания (80% смертность)<br>
+                    • Мутационные бури<br>
+                    • Случайные события каждые 50-100 поколений
+                </div>
+            `;
+        }
+        
+        // Показываем механизмы смерти при загрузке
+        showDeathMechanisms();
+    </script>
+</body>
+</html>
