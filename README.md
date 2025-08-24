@@ -66,8 +66,8 @@
 
 ### 1. Клонирование репозитория
 ```bash
-git clone https://github.com/yourusername/evolution-game-of-life.git
-cd evolution-game-of-life
+git clone https://github.com/EugenVar/Game-of-Life.git
+cd Game-of-Life
 ```
 
 ### 2. Запуск
