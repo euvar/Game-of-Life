@@ -1680,7 +1680,16 @@ class GameOfLife {
                     survivalChecks++;
                     // Клетка живая
                     currentCell.dna.age++;
-                    currentCell.dna.energy = Math.max(0, currentCell.dna.energy - 5);
+                    
+                    // ⚡ ИСПРАВЛЕНИЕ ЭНЕРГИИ: уменьшаем расход и добавляем восполнение
+                    currentCell.dna.energy = Math.max(0, currentCell.dna.energy - 2); // Уменьшили с 5 до 2
+                    
+                    // Все клетки восполняют энергию от окружающей среды (базовый метаболизм)
+                    if (neighbors.length >= 2 && neighbors.length <= 3) {
+                        currentCell.dna.energy = Math.min(100, currentCell.dna.energy + 3); // Восполнение в оптимальных условиях
+                    } else if (neighbors.length === 1 || neighbors.length === 4) {
+                        currentCell.dna.energy = Math.min(100, currentCell.dna.energy + 1); // Небольшое восполнение
+                    }
                     
                     // 💀 СМЕРТЬ ОТ СТАРОСТИ - принудительная проверка возраста
                     if (currentCell.dna.age >= currentCell.dna.lifespan) {
@@ -1712,10 +1721,14 @@ class GameOfLife {
                                         if (this.nextGrid[nx][ny]) {
                                             this.nextGrid[nx][ny] = null;
                                         }
-                                        currentCell.dna.energy = Math.min(100, currentCell.dna.energy + 30);
+                                        // 🦎 ИСПРАВЛЕНИЕ ОХОТЫ: хищник получает энергию от жертвы
+                                        const victimEnergy = victim.dna.energy || 50; // Энергия жертвы
+                                        const energyGain = Math.min(40, victimEnergy * 0.6); // 60% от энергии жертвы, максимум 40
+                                        currentCell.dna.energy = Math.min(100, currentCell.dna.energy + energyGain);
+                                        
                                         predatorKills++;
                                         this.soundSystem.predatorKill();
-                                        console.log(`🦎 Хищник съел жертву в (${nx},${ny}), энергия: ${currentCell.dna.energy}`);
+                                        console.log(`🦎 Хищник съел жертву в (${nx},${ny}), получил ${energyGain.toFixed(0)} энергии (было ${victim.dna.energy.toFixed(0)}), итого: ${currentCell.dna.energy.toFixed(0)}`);
                                         break;
                                     }
                                 }
@@ -1741,6 +1754,9 @@ class GameOfLife {
                         const newCell = { dna: currentCell.dna.clone() };
                         newCell.dna.age = currentCell.dna.age;
                         newCell.dna.energy = currentCell.dna.energy;
+                        
+                        // 🧬 ИСПРАВЛЕНИЕ: сохраняем поколение для выживших клеток
+                        newCell.dna.generation = currentCell.dna.generation;
                         
                         const didMutate = newCell.dna.mutate(this.mutationRate, this.environment);
                         if (didMutate) {
