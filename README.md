@@ -7,11 +7,11 @@
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS)
-[![GitHub](https://img.shields.io/badge/GitHub-EugenVar-181717?style=for-the-badge&logo=github)](https://github.com/EugenVar/Game-of-Life)
+[![GitHub](https://img.shields.io/badge/GitHub-euvar-181717?style=for-the-badge&logo=github)](https://github.com/euvar/Game-of-Life)
 
 *Расширенная интерактивная симуляция клеточного автомата Конвея с эволюцией и генетическими алгоритмами*
 
-[🐛 **Баг-репорты**](https://github.com/EugenVar/Game-of-Life/issues)
+[🐛 **Баг-репорты**](https://github.com/euvar/Game-of-Life/issues)
 
 </div>
 
@@ -66,7 +66,7 @@
 
 ### 1. Клонирование репозитория
 ```bash
-git clone https://github.com/EugenVar/Game-of-Life.git
+git clone https://github.com/euvar/Game-of-Life.git
 cd Game-of-Life
 ```
 
@@ -225,7 +225,7 @@ Generation,Population,AvgFitness,Diversity,Predators,Prey
 ## 🤝 Участие в разработке
 
 ### 🐛 Сообщения о багах
-1. Проверьте существующие [Issues](https://github.com/EugenVar/Game-of-Life/issues)
+1. Проверьте существующие [Issues](https://github.com/euvar/Game-of-Life/issues)
 2. Создайте детальный отчет с шагами воспроизведения
 3. Используйте встроенную систему тестирования для диагностики
 
@@ -282,18 +282,18 @@ Generation,Population,AvgFitness,Diversity,Predators,Prey
 
 ## 🌟 Поддержите проект
 
-Если проект оказался полезным, поставьте ⭐ на [GitHub](https://github.com/EugenVar/Game-of-Life) - это поможет другим исследователям и студентам найти этот образовательный инструмент!
+Если проект оказался полезным, поставьте ⭐ на [GitHub](https://github.com/euvar/Game-of-Life) - это поможет другим исследователям и студентам найти этот образовательный инструмент!
 
 ### 🔗 Полезные ссылки
-- [📖 **Документация**](https://github.com/EugenVar/Game-of-Life#readme)
-- [🐛 **Сообщить о проблеме**](https://github.com/EugenVar/Game-of-Life/issues)
-- [💡 **Предложить улучшение**](https://github.com/EugenVar/Game-of-Life/issues/new)
+- [📖 **Документация**](https://github.com/euvar/Game-of-Life#readme)
+- [🐛 **Сообщить о проблеме**](https://github.com/euvar/Game-of-Life/issues)
+- [💡 **Предложить улучшение**](https://github.com/euvar/Game-of-Life/issues/new)
 
 ---
 
 <div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/EugenVar/Game-of-Life?style=social)](https://github.com/EugenVar/Game-of-Life)
-[![GitHub Forks](https://img.shields.io/github/forks/EugenVar/Game-of-Life?style=social)](https://github.com/EugenVar/Game-of-Life)
+[![GitHub Stars](https://img.shields.io/github/stars/euvar/Game-of-Life?style=social)](https://github.com/euvar/Game-of-Life)
+[![GitHub Forks](https://img.shields.io/github/forks/euvar/Game-of-Life?style=social)](https://github.com/euvar/Game-of-Life)
 
 </div>
