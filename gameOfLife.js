@@ -55,55 +55,70 @@ class SoundSystem {
 // Класс для ДНК клетки
 class CellDNA {
     constructor(survival = null, reproduction = null, adaptation = null, resistance = null, species = 'prey') {
-        this.survival = survival || Math.random() * 100;
-        this.reproduction = reproduction || Math.random() * 100;
-        this.adaptation = adaptation || Math.random() * 100;
-        this.resistance = resistance || Math.random() * 100;
+        // Инициализируем гены с минимальными значениями для выживания (20-100)
+        this.survival = survival || (20 + Math.random() * 80);
+        this.reproduction = reproduction || (10 + Math.random() * 90);
+        this.adaptation = adaptation || (10 + Math.random() * 90);
+        this.resistance = resistance || (10 + Math.random() * 90);
         this.species = species; // 'prey' или 'predator'
         this.age = 0;
         this.generation = 0;
         this.energy = 100;
         this.fitness = this.calculateFitness();
-        this.id = Math.random().toString(36).substr(2, 9);
+        this.id = Math.random().toString(36).substring(2, 11);
         
         // Новые генетические свойства
         this.geneticMemory = []; // память о успешных стратегиях
         this.migrationTendency = Math.random() * 100; // склонность к миграции
         this.immuneSystem = Math.random() * 100; // сопротивляемость болезням
         this.symbiosisCapacity = Math.random() * 100; // способность к симбиозу
-        this.lifespan = 50 + Math.random() * 100; // продолжительность жизни
+        this.lifespan = 20 + Math.random() * 80; // продолжительность жизни (20-100 ходов - реалистично для клеток)
         this.achievements = new Set(); // достижения клетки
         this.diseaseResistance = Math.random() * 100; // сопротивляемость заболеваниям
     }
 
     calculateFitness() {
+        // Нормализуем значения генов к диапазону 0-1
+        const normalizedSurvival = this.survival / 100;
+        const normalizedReproduction = this.reproduction / 100;
+        const normalizedAdaptation = this.adaptation / 100;
+        const normalizedResistance = this.resistance / 100;
+        
         if (this.species === 'predator') {
-            return (this.survival * 0.5 + this.reproduction * 0.3 + this.adaptation * 0.2) / 100;
+            // Для хищников важнее выживание и адаптация
+            return (normalizedSurvival * 0.5 + normalizedReproduction * 0.2 + normalizedAdaptation * 0.3);
         }
-        return (this.survival * 0.4 + this.reproduction * 0.3 + this.adaptation * 0.2 + this.resistance * 0.1) / 100;
+        // Для жертв все гены важны более равномерно
+        return (normalizedSurvival * 0.3 + normalizedReproduction * 0.25 + normalizedAdaptation * 0.25 + normalizedResistance * 0.2);
     }
 
     mutate(mutationRate, environment = {}) {
         const envFactor = this.getEnvironmentFactor(environment);
         const actualMutationRate = mutationRate * envFactor;
-        const shouldMutate = Math.random() < (actualMutationRate / 100) * (1 - this.resistance / 100);
+        
+        // Исправляем логику: resistance влияет на силу мутации, а не на вероятность
+        // Высокое сопротивление уменьшает размер мутационных изменений
+        // Исправление: полный диапазон 0.0-1.0 для силы мутации
+        const mutationStrength = 1 - (this.resistance / 100); // 0.0-1.0 диапазон
+        const shouldMutate = Math.random() < (actualMutationRate / 100);
         
         if (shouldMutate) {
             const trait = Math.floor(Math.random() * 4);
-            const change = (Math.random() - 0.5) * 30;
+            // Уменьшаем размах мутаций с 30 до 15 и применяем силу мутации
+            const change = (Math.random() - 0.5) * 15 * mutationStrength;
             
             switch(trait) {
                 case 0:
-                    this.survival = Math.max(0, Math.min(100, this.survival + change));
+                    this.survival = Math.max(5, Math.min(100, this.survival + change));
                     break;
                 case 1:
-                    this.reproduction = Math.max(0, Math.min(100, this.reproduction + change));
+                    this.reproduction = Math.max(1, Math.min(100, this.reproduction + change));
                     break;
                 case 2:
-                    this.adaptation = Math.max(0, Math.min(100, this.adaptation + change));
+                    this.adaptation = Math.max(1, Math.min(100, this.adaptation + change));
                     break;
                 case 3:
-                    this.resistance = Math.max(0, Math.min(100, this.resistance + change));
+                    this.resistance = Math.max(1, Math.min(100, this.resistance + change));
                     break;
             }
             this.fitness = this.calculateFitness();
@@ -119,11 +134,13 @@ class CellDNA {
     }
 
     crossover(otherDNA) {
+        // Уменьшаем случайное отклонение с 15 до 8 для более реалистичной генетики
+        const deviation = 8;
         const newDNA = new CellDNA(
-            (this.survival + otherDNA.survival) / 2 + (Math.random() - 0.5) * 15,
-            (this.reproduction + otherDNA.reproduction) / 2 + (Math.random() - 0.5) * 15,
-            (this.adaptation + otherDNA.adaptation) / 2 + (Math.random() - 0.5) * 15,
-            (this.resistance + otherDNA.resistance) / 2 + (Math.random() - 0.5) * 15,
+            (this.survival + otherDNA.survival) / 2 + (Math.random() - 0.5) * deviation,
+            (this.reproduction + otherDNA.reproduction) / 2 + (Math.random() - 0.5) * deviation,
+            (this.adaptation + otherDNA.adaptation) / 2 + (Math.random() - 0.5) * deviation,
+            (this.resistance + otherDNA.resistance) / 2 + (Math.random() - 0.5) * deviation,
             this.species
         );
         
@@ -131,22 +148,28 @@ class CellDNA {
         newDNA.reproduction = Math.max(0, Math.min(100, newDNA.reproduction));
         newDNA.adaptation = Math.max(0, Math.min(100, newDNA.adaptation));
         newDNA.resistance = Math.max(0, Math.min(100, newDNA.resistance));
+        // КРИТИЧНОЕ ИСПРАВЛЕНИЕ БЕССМЕРТИЯ #1: crossover ОБЯЗАТЕЛЬНО сбрасывает age!
         newDNA.generation = Math.max(this.generation, otherDNA.generation) + 1;
+        newDNA.age = 0; // НОВОРОЖДЕННЫЕ ОБЯЗАТЕЛЬНО НАЧИНАЮТ С 0!!!
+        newDNA.energy = 100; // Полная энергия
         newDNA.fitness = newDNA.calculateFitness();
         
-        // Наследование генетической памяти
-        newDNA.geneticMemory = [...this.geneticMemory, ...otherDNA.geneticMemory].slice(-5);
-        newDNA.migrationTendency = (this.migrationTendency + otherDNA.migrationTendency) / 2 + (Math.random() - 0.5) * 10;
-        newDNA.immuneSystem = (this.immuneSystem + otherDNA.immuneSystem) / 2 + (Math.random() - 0.5) * 10;
-        newDNA.symbiosisCapacity = (this.symbiosisCapacity + otherDNA.symbiosisCapacity) / 2 + (Math.random() - 0.5) * 10;
+        // Наследование дополнительных признаков с оптимизацией
+        const smallDeviation = 5; // уменьшаем отклонение для стабильности
+        newDNA.geneticMemory = [...this.geneticMemory, ...otherDNA.geneticMemory].slice(-3); // уменьшаем память с 5 до 3
+        newDNA.migrationTendency = Math.max(0, Math.min(100, (this.migrationTendency + otherDNA.migrationTendency) / 2 + (Math.random() - 0.5) * smallDeviation));
+        newDNA.immuneSystem = Math.max(0, Math.min(100, (this.immuneSystem + otherDNA.immuneSystem) / 2 + (Math.random() - 0.5) * smallDeviation));
+        newDNA.symbiosisCapacity = Math.max(0, Math.min(100, (this.symbiosisCapacity + otherDNA.symbiosisCapacity) / 2 + (Math.random() - 0.5) * smallDeviation));
         
         return newDNA;
     }
 
     clone() {
         const newDNA = new CellDNA(this.survival, this.reproduction, this.adaptation, this.resistance, this.species);
-        newDNA.age = 0;
+        // КРИТИЧНОЕ ИСПРАВЛЕНИЕ БЕССМЕРТИЯ #2: clone ОБЯЗАТЕЛЬНО age=0!
+        newDNA.age = 0; // КЛОНЫ НАЧИНАЮТ С 0 ЛЕТ!!!
         newDNA.generation = this.generation + 1;
+        newDNA.energy = 100; // Полная энергия
         newDNA.geneticMemory = [...this.geneticMemory];
         newDNA.migrationTendency = this.migrationTendency;
         newDNA.immuneSystem = this.immuneSystem;
@@ -154,31 +177,28 @@ class CellDNA {
         return newDNA;
     }
     
-    // Сохранение успешной стратегии в генетической памяти
-    rememberStrategy(strategy) {
-        this.geneticMemory.push({
-            strategy: strategy,
-            fitness: this.fitness,
-            generation: this.generation,
-            timestamp: Date.now()
-        });
-        if (this.geneticMemory.length > 5) {
-            this.geneticMemory.shift();
+    // Сохранение успешной стратегии (упрощенно для реалистичности)
+    rememberStrategy() {
+        // Упрощаем до простого счетчика успешных стратегий
+        if (this.fitness > 0.7) {
+            this.geneticMemory.push({
+                fitness: this.fitness,
+                generation: this.generation
+            });
+            if (this.geneticMemory.length > 3) {
+                this.geneticMemory.shift();
+            }
         }
     }
     
-    // Применение генетической памяти для принятия решений
-    applyGeneticMemory(situation) {
-        const relevantMemories = this.geneticMemory.filter(memory => 
-            memory.strategy.includes(situation)
-        );
-        if (relevantMemories.length > 0) {
-            const bestMemory = relevantMemories.reduce((best, current) => 
-                current.fitness > best.fitness ? current : best
-            );
-            return bestMemory.strategy;
+    // Применение генетической памяти (упрощенно)
+    applyGeneticMemory() {
+        // Упрощаем до простого бонуса за наличие успешных предков
+        if (this.geneticMemory.length > 0) {
+            const avgAncestorFitness = this.geneticMemory.reduce((sum, mem) => sum + mem.fitness, 0) / this.geneticMemory.length;
+            return avgAncestorFitness * 0.1; // маленький бонус к выживанию
         }
-        return null;
+        return 0;
     }
     
     // Мутационная катастрофа
@@ -209,7 +229,8 @@ class CellDNA {
             const intensity = Math.floor(this.fitness * 255);
             return `rgb(${intensity}, 0, 0)`;
         } else if (this.species === 'symbiotic') {
-            const intensity = Math.floor(this.symbiosisCapacity * 2.55);
+            // Исправление: защита от переполнения RGB (>255)
+            const intensity = Math.floor(Math.min(100, this.symbiosisCapacity) * 2.55);
             return `rgb(${intensity}, ${intensity}, 0)`;
         } else {
             const r = Math.floor(this.survival * 2.55);
@@ -226,7 +247,8 @@ class CellDNA {
     
     // Заражение
     infect() {
-        if (Math.random() > this.diseaseResistance / 100) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: логика сопротивления болезням была обращена
+        if (Math.random() < (100 - this.diseaseResistance) / 100) {
             this.achievements.add('infected');
             this.energy *= 0.7; // Болезнь снижает энергию
             return true;
@@ -281,7 +303,10 @@ class AchievementSystem {
         document.body.appendChild(notification);
         
         setTimeout(() => {
-            notification.remove();
+            // Исправление утечки памяти: проверяем существование элемента
+            if (notification && notification.parentNode) {
+                notification.remove();
+            }
         }, 3000);
     }
     
@@ -369,7 +394,7 @@ class EvolutionTracker {
         this.geneDistribution = [];
         this.predatorPreyHistory = [];
         this.environmentHistory = [];
-        this.maxHistoryLength = 200;
+        this.maxHistoryLength = 100; // уменьшаем для экономии памяти
     }
 
     update(cells, generation, environment = {}) {
@@ -571,7 +596,8 @@ class GameOfLife {
         
         for (let x = 0; x < this.gridWidth; x++) {
             for (let y = 0; y < this.gridHeight; y++) {
-                if (this.grid[x][y] && this.grid[x][y].dna) {
+                // Исправление типов: проверяем что клетка - объект, а не boolean
+                if (this.grid[x][y] && typeof this.grid[x][y] === 'object' && this.grid[x][y].dna) {
                     if (catastropheType < 0.3) {
                         // Мутационная катастрофа
                         this.grid[x][y].dna.catastrophicMutation();
@@ -708,7 +734,8 @@ class GameOfLife {
             console.log('Обрабатываем симбиоз...');
             for (let x = 0; x < this.gridWidth; x++) {
                 for (let y = 0; y < this.gridHeight; y++) {
-                    if (this.grid[x][y] && this.grid[x][y].dna) {
+                    // Исправление типов: проверяем что клетка - объект, а не boolean
+                if (this.grid[x][y] && typeof this.grid[x][y] === 'object' && this.grid[x][y].dna) {
                         const neighbors = this.getNeighbors(x, y);
                         const symbioticNeighbors = neighbors.filter(n => 
                             this.grid[n.x] && this.grid[n.x][n.y] && 
@@ -753,7 +780,12 @@ class GameOfLife {
                                        type === 'error' ? 'rgba(220, 53, 69, 0.95)' : 'rgba(0, 123, 255, 0.95)';
         
         document.body.appendChild(notification);
-        setTimeout(() => document.body.removeChild(notification), 3000);
+        setTimeout(() => {
+            // Исправление утечки памяти
+            if (notification && notification.parentNode === document.body) {
+                document.body.removeChild(notification);
+            }
+        }, 3000);
     }
 
     createParticle(x, y, color = '#ffd700') {
@@ -1143,11 +1175,14 @@ class GameOfLife {
         for (let x = 0; x < this.gridWidth && symbioticAdded < 3; x++) {
             for (let y = 0; y < this.gridHeight && symbioticAdded < 3; y++) {
                 if (!this.grid[x][y] && Math.random() < 0.05) {
+                    // Исправление: создаем обычные клетки с высоким symbiosisCapacity
+                    const symbioticDNA = new CellDNA(70, 80, 90, 60, 'prey');
+                    symbioticDNA.symbiosisCapacity = 85 + Math.random() * 15;
                     this.grid[x][y] = {
-                        dna: new CellDNA(70, 80, 90, 60, 'symbiotic')
+                        dna: symbioticDNA
                     };
                     symbioticAdded++;
-                    console.log(`Добавлена симбиотическая клетка в ${x},${y}`);
+                    console.log(`Добавлена симбиотическая клетка в ${x},${y} с symbiosisCapacity=${symbioticDNA.symbiosisCapacity.toFixed(0)}`);
                 }
             }
         }
@@ -1352,7 +1387,7 @@ class GameOfLife {
     }
 
     selectForBreedingAt(x, y) {
-        if (!this.grid[x][y] || !this.grid[x][y].dna) return;
+        if (!this.grid[x][y] || typeof this.grid[x][y] !== 'object' || !this.grid[x][y].dna) return;
         
         // Создаем временный объект клетки с координатами для разведения
         const cellForBreeding = { ...this.grid[x][y], x, y };
@@ -1390,12 +1425,27 @@ class GameOfLife {
     killSelectedCell() {
         if (!this.selectedCell) return;
         
-        // Найти координаты клетки в сетке
+        // Исправление: используем координаты вместо ссылок на объекты
+        if (this.selectedCellCoords && this.selectedCellCoords.x !== undefined && this.selectedCellCoords.y !== undefined) {
+            const {x, y} = this.selectedCellCoords;
+            if (x >= 0 && x < this.gridWidth && y >= 0 && y < this.gridHeight && this.grid[x][y]) {
+                this.grid[x][y] = null;
+                this.selectedCell = null;
+                this.selectedCellCoords = null;
+                this.updateStats();
+                this.draw();
+                this.showNotification('Клетка удалена', 'success');
+                return;
+            }
+        }
+        
+        // Fallback: поиск по ссылке (старая логика)
         for (let x = 0; x < this.gridWidth; x++) {
             for (let y = 0; y < this.gridHeight; y++) {
                 if (this.grid[x][y] === this.selectedCell) {
                     this.grid[x][y] = null;
                     this.selectedCell = null;
+                    this.selectedCellCoords = null;
                     this.updateStats();
                     this.draw();
                     this.showNotification('Клетка удалена', 'success');
@@ -1454,6 +1504,8 @@ class GameOfLife {
                     this.selectForBreedingAt(x, y);
                 } else if (this.grid[x][y]) {
                     // Клик по существующей клетке - селекция или удаление
+                    // Исправление: сохраняем координаты вместе с объектом
+                    this.selectedCellCoords = {x, y};
                     if (this.selectedCell === this.grid[x][y]) {
                         // Повторный клик - удаляем клетку
                         this.grid[x][y] = null;
@@ -1482,8 +1534,20 @@ class GameOfLife {
                     breedingControls.style.display = this.selectedCell ? 'block' : 'none';
                 }
             } else {
-                // Базовый режим - переключение состояния клетки
-                this.grid[x][y] = !this.grid[x][y];
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ СМЕШАННЫХ ТИПОВ: не смешиваем boolean и objects
+                if (this.isEvolutionMode) {
+                    // В эволюционном режиме создаем клетку с ДНК
+                    if (!this.grid[x][y] || typeof this.grid[x][y] === 'boolean') {
+                        this.grid[x][y] = {
+                            dna: new CellDNA()
+                        };
+                    } else {
+                        this.grid[x][y] = null;
+                    }
+                } else {
+                    // Базовый режим - только boolean
+                    this.grid[x][y] = !this.grid[x][y];
+                }
             }
             this.updateStats();
             this.draw();
@@ -1587,10 +1651,12 @@ class GameOfLife {
     }
 
     stop() {
+        // Улучшенная очистка анимации
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        this.isPlaying = false; // Гарантируем остановку
     }
 
     animate() {
@@ -1613,8 +1679,12 @@ class GameOfLife {
             this.lastTime = currentTime - (deltaTime % interval);
         }
 
-        if (this.isPlaying) {
-            this.animationId = requestAnimationFrame(() => this.animate());
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от утечек анимации
+        if (this.isPlaying && !this.animationId) { // Проверяем что анимация еще не запущена
+            this.animationId = requestAnimationFrame(() => {
+                this.animationId = null; // Очищаем ID перед вызовом
+                this.animate();
+            });
         }
     }
 
@@ -1670,6 +1740,46 @@ class GameOfLife {
         let births = 0, deaths = 0, mutations = 0, predatorKills = 0;
         let survivalChecks = 0, extremeConditionsChecks = 0, reproductionAttempts = 0;
         let extremeSurvived = 0, extremeDied = 0;
+
+        // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: принудительная очистка старых клеток ДО начала обработки
+        let oldCellsFound = 0;
+        let fixedLifespanCount = 0;
+        for (let x = 0; x < this.gridWidth; x++) {
+            for (let y = 0; y < this.gridHeight; y++) {
+                const cell = this.grid[x][y];
+                if (cell && cell.dna) {
+                    // 🔧 ИСПРАВЛЯЕМ СТАРЫЕ КЛЕТКИ С НЕПРАВИЛЬНЫМ LIFESPAN
+                    if (cell.dna.lifespan > 100) {
+                        cell.dna.lifespan = 20 + Math.random() * 80; // Новый реалистичный диапазон
+                        fixedLifespanCount++;
+                    }
+                    // 🚨 ОТЛАДКА: логируем все клетки старше 50 лет (реалистичный предел)
+                    if (cell.dna.age >= 50) {
+                        console.log(`🚨 НАЙДЕНА СТАРАЯ КЛЕТКА в (${x},${y}): возраст=${cell.dna.age}, лимит=${cell.dna.lifespan.toFixed(1)}, поколение=${cell.dna.generation}, вид=${cell.dna.species}, превышение=${(cell.dna.age - cell.dna.lifespan).toFixed(1)}`);
+                        oldCellsFound++;
+                        
+                        // 🔥 ПРИНУДИТЕЛЬНОЕ ОГРАНИЧЕНИЕ: если lifespan слишком большой, сбрасываем
+                        if (cell.dna.lifespan > 100) {
+                            console.log(`⚠️ ИСПРАВЛЯЮ АНОМАЛЬНЫЙ LIFESPAN: ${cell.dna.lifespan.toFixed(1)} → 100`);
+                            cell.dna.lifespan = 100;
+                        }
+                    }
+                    
+                    if (cell.dna.age >= cell.dna.lifespan) {
+                        console.log(`☠️ ПРИНУДИТЕЛЬНАЯ СМЕРТЬ в (${x},${y}): возраст=${cell.dna.age}, лимит=${cell.dna.lifespan}, поколение=${cell.dna.generation}`);
+                        this.grid[x][y] = null; // Удаляем старую клетку из текущей сетки
+                        deaths++;
+                    }
+                }
+            }
+        }
+        
+        if (fixedLifespanCount > 0) {
+            console.log(`🔧 ИСПРАВЛЕНО КЛЕТОК С БОЛЬШИМ LIFESPAN: ${fixedLifespanCount}`);
+        }
+        if (oldCellsFound > 0) {
+            console.log(`🚨 ВСЕГО НАЙДЕНО КЛЕТОК 50+ ЛЕТ (биологически старых): ${oldCellsFound}`);
+        }
         
         for (let x = 0; x < this.gridWidth; x++) {
             for (let y = 0; y < this.gridHeight; y++) {
@@ -1681,15 +1791,25 @@ class GameOfLife {
                     // Клетка живая
                     currentCell.dna.age++;
                     
-                    // ⚡ ИСПРАВЛЕНИЕ ЭНЕРГИИ: уменьшаем расход и добавляем восполнение
-                    currentCell.dna.energy = Math.max(0, currentCell.dna.energy - 2); // Уменьшили с 5 до 2
+                    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ЭНЕРГЕТИЧЕСКОГО БАЛАНСА
+                    // Исходная проблема: -2 +3 = +1 энергии каждый ход (бессмертие!)
                     
-                    // Все клетки восполняют энергию от окружающей среды (базовый метаболизм)
+                    // Базовые затраты на жизнь
+                    const baseCost = 3;
+                    currentCell.dna.energy = Math.max(0, currentCell.dna.energy - baseCost);
+                    
+                    // Восполнение зависит от условий и генов
+                    let energyGain = 0;
                     if (neighbors.length >= 2 && neighbors.length <= 3) {
-                        currentCell.dna.energy = Math.min(100, currentCell.dna.energy + 3); // Восполнение в оптимальных условиях
+                        energyGain = 2 + (currentCell.dna.survival / 100); // 2-3 энергии
                     } else if (neighbors.length === 1 || neighbors.length === 4) {
-                        currentCell.dna.energy = Math.min(100, currentCell.dna.energy + 1); // Небольшое восполнение
+                        energyGain = 1; // Минимальное восполнение
                     }
+                    // Нет восполнения при 0, 5+ соседях (смерть от одиночества/перенаселения)
+                    
+                    currentCell.dna.energy = Math.min(100, currentCell.dna.energy + energyGain);
+                    
+                    // Итог: баланс -3+2=-1 в оптимальных условиях (постепенное старение)
                     
                     // 💀 СМЕРТЬ ОТ СТАРОСТИ - принудительная проверка возраста
                     if (currentCell.dna.age >= currentCell.dna.lifespan) {
@@ -1702,6 +1822,9 @@ class GameOfLife {
                             console.log(`⚰️ СМЕРТЬ ОТ СТАРОСТИ: возраст=${currentCell.dna.age}, лимит=${currentCell.dna.lifespan.toFixed(0)}, поколение=${currentCell.dna.generation}, вид=${currentCell.dna.species}`);
                         }
                         
+                        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: мёртвую клетку НАДО удалить из nextGrid!
+                        this.nextGrid[x][y] = null;
+                        
                         // Пропускаем все дальнейшие проверки - клетка умерла
                         continue;
                     }
@@ -1713,26 +1836,32 @@ class GameOfLife {
                             // Выбираем случайную жертву
                             const victim = prey[Math.floor(Math.random() * prey.length)];
                             
-                            // Находим координаты жертвы и "убиваем" её в nextGrid
-                            for (let nx = Math.max(0, x-1); nx <= Math.min(this.gridWidth-1, x+1); nx++) {
-                                for (let ny = Math.max(0, y-1); ny <= Math.min(this.gridHeight-1, y+1); ny++) {
+                            // Исправление race condition: сохраняем координаты жертвы
+                            let victimFound = false;
+                            let victimX, victimY;
+                            
+                            for (let nx = Math.max(0, x-1); nx <= Math.min(this.gridWidth-1, x+1) && !victimFound; nx++) {
+                                for (let ny = Math.max(0, y-1); ny <= Math.min(this.gridHeight-1, y+1) && !victimFound; ny++) {
                                     if (this.grid[nx][ny] === victim) {
-                                        // НЕ модифицируем this.grid! Убиваем в nextGrid
-                                        if (this.nextGrid[nx][ny]) {
-                                            this.nextGrid[nx][ny] = null;
-                                        }
-                                        // 🦎 ИСПРАВЛЕНИЕ ОХОТЫ: хищник получает энергию от жертвы
-                                        const victimEnergy = victim.dna.energy || 50; // Энергия жертвы
-                                        const energyGain = Math.min(40, victimEnergy * 0.6); // 60% от энергии жертвы, максимум 40
-                                        currentCell.dna.energy = Math.min(100, currentCell.dna.energy + energyGain);
-                                        
-                                        predatorKills++;
-                                        this.soundSystem.predatorKill();
-                                        console.log(`🦎 Хищник съел жертву в (${nx},${ny}), получил ${energyGain.toFixed(0)} энергии (было ${victim.dna.energy.toFixed(0)}), итого: ${currentCell.dna.energy.toFixed(0)}`);
-                                        break;
+                                        victimX = nx;
+                                        victimY = ny;
+                                        victimFound = true;
                                     }
                                 }
-                                if (predatorKills > 0) break;
+                            }
+                            
+                            if (victimFound) {
+                                // Безопасно "убиваем" жертву в nextGrid
+                                this.nextGrid[victimX][victimY] = null;
+                                
+                                // 🦎 Хищник получает энергию от жертвы
+                                const victimEnergy = victim.dna.energy || 50;
+                                const energyGain = Math.min(40, victimEnergy * 0.6);
+                                currentCell.dna.energy = Math.min(100, currentCell.dna.energy + energyGain);
+                                
+                                predatorKills++;
+                                this.soundSystem.predatorKill();
+                                console.log(`🦎 Хищник съел жертву в (${victimX},${victimY}), получил ${energyGain.toFixed(0)} энергии, итого: ${currentCell.dna.energy.toFixed(0)}`);
                             }
                         }
                     }
@@ -1749,14 +1878,31 @@ class GameOfLife {
                         console.log(`🌡️ ЭКСТРИМ: темп=${this.environment.temperature}, давл=${this.environment.pressure}, шанс выжить=${(survivalChance*100).toFixed(0)}%, энергия=${currentCell.dna.energy}, адаптация=${currentCell.dna.adaptation}`);
                     }
                     
-                    if (Math.random() < survivalChance && currentCell.dna.energy > 10) {
+                    if (Math.random() < survivalChance) {
                         // Клетка выживает
                         const newCell = { dna: currentCell.dna.clone() };
                         newCell.dna.age = currentCell.dna.age;
                         newCell.dna.energy = currentCell.dna.energy;
                         
                         // 🧬 ИСПРАВЛЕНИЕ: сохраняем поколение для выживших клеток
+                        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: выжившие клетки НЕ увеличивают поколение
+                        // Поколение остается прежним для выживших клеток
                         newCell.dna.generation = currentCell.dna.generation;
+                        // ИСПРАВЛЕНИЕ: возраст уже увеличился в строке 1752, не увеличиваем дважды!
+                        newCell.dna.age = currentCell.dna.age;
+                        
+                        // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка смерти от старости ПОСЛЕ увеличения возраста
+                        if (newCell.dna.age >= newCell.dna.lifespan) {
+                            // Клетка умирает от старости даже после выживания
+                            deaths++;
+                            this.nextGrid[x][y] = null;
+                            
+                            // 📊 Логирование смерти от старости
+                            if (Math.random() < 0.1) { // 10% логирования для отладки
+                                console.log(`💀 СМЕРТЬ ОТ СТАРОСТИ: возраст=${newCell.dna.age}, лимит=${newCell.dna.lifespan}, поколение=${newCell.dna.generation}`);
+                            }
+                            continue;
+                        }
                         
                         const didMutate = newCell.dna.mutate(this.mutationRate, this.environment);
                         if (didMutate) {
@@ -1827,11 +1973,31 @@ class GameOfLife {
             }
         }
 
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: экология ДО swap, чтобы не дублировать обработку
+        // Применяем экологические системы К ТЕКУЩЕМУ nextGrid (ещё не swapped!)
+        const ecologyDeaths = this.applyEcologicalSystemsToGrid(this.nextGrid);
+        deaths += ecologyDeaths;
+        
+        // Только ПОСЛЕ всех обработок делаем swap
         [this.grid, this.nextGrid] = [this.nextGrid, this.grid];
         
-        // Применяем экологические системы ПОСЛЕ основной эволюции
-        const ecologyDeaths = this.applyEcologicalSystems();
-        deaths += ecologyDeaths;
+        // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: принудительная очистка старых клеток ПОСЛЕ swap тоже!
+        let postSwapOldCells = 0;
+        for (let x = 0; x < this.gridWidth; x++) {
+            for (let y = 0; y < this.gridHeight; y++) {
+                const cell = this.grid[x][y];
+                if (cell && cell.dna && cell.dna.age >= cell.dna.lifespan) {
+                    console.log(`☠️ ПОСТ-SWAP СМЕРТЬ в (${x},${y}): возраст=${cell.dna.age}, лимит=${cell.dna.lifespan}, поколение=${cell.dna.generation}`);
+                    this.grid[x][y] = null;
+                    deaths++;
+                    postSwapOldCells++;
+                }
+            }
+        }
+        
+        if (postSwapOldCells > 0) {
+            console.log(`🚨 УДАЛЕНО СТАРЫХ КЛЕТОК ПОСЛЕ SWAP: ${postSwapOldCells}`);
+        }
         
         // Подсчитываем текущую популяцию
         let currentPopulation = 0;
@@ -1845,7 +2011,8 @@ class GameOfLife {
         let totalAdaptation = 0, adaptationCount = 0;
         for (let x = 0; x < this.gridWidth; x++) {
             for (let y = 0; y < this.gridHeight; y++) {
-                if (this.grid[x][y] && this.grid[x][y].dna) {
+                // Исправление типов: проверяем что клетка - объект, а не boolean
+                if (this.grid[x][y] && typeof this.grid[x][y] === 'object' && this.grid[x][y].dna) {
                     totalAdaptation += this.grid[x][y].dna.adaptation;
                     adaptationCount++;
                 }
@@ -1868,8 +2035,8 @@ class GameOfLife {
         }
     }
 
-    // Применяет все экологические системы и возвращает количество дополнительных смертей
-    applyEcologicalSystems() {
+    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: применяем к конкретной сетке, чтобы не нарушать порядок обработки
+    applyEcologicalSystemsToGrid(targetGrid) {
         let totalDeaths = 0;
         
         if (this.diseaseSystem.active) {
@@ -1963,7 +2130,7 @@ class GameOfLife {
             }
         }
         
-        // Перемещение клеток
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ МИГРАЦИИ: защита от потери клеток
         migratingCells.forEach(migrant => {
             const newX = Math.max(0, Math.min(this.gridWidth - 1, 
                 migrant.x + Math.floor((Math.random() - 0.5) * 6)));
@@ -1973,7 +2140,25 @@ class GameOfLife {
             if (!this.grid[newX][newY]) {
                 this.grid[newX][newY] = migrant.cell;
                 migrant.cell.dna.achievements.add('migrant');
-                console.log(`🦅 Клетка мигрировала с (${migrant.x},${migrant.y}) на (${newX},${newY})`);
+                console.log(`🦅 Миграция: (${migrant.x},${migrant.y}) → (${newX},${newY})`);
+            } else {
+                // Если место занято, поиск fallback позиции
+                let placed = false;
+                for (let dx = -1; dx <= 1 && !placed; dx++) {
+                    for (let dy = -1; dy <= 1 && !placed; dy++) {
+                        const fallbackX = Math.max(0, Math.min(this.gridWidth - 1, newX + dx));
+                        const fallbackY = Math.max(0, Math.min(this.gridHeight - 1, newY + dy));
+                        if (!this.grid[fallbackX][fallbackY]) {
+                            this.grid[fallbackX][fallbackY] = migrant.cell;
+                            migrant.cell.dna.achievements.add('migrant');
+                            placed = true;
+                        }
+                    }
+                }
+                // Крайний случай: возвращаем на старое место
+                if (!placed) {
+                    this.grid[migrant.x][migrant.y] = migrant.cell;
+                }
             }
         });
     }
@@ -1985,29 +2170,37 @@ class GameOfLife {
             // Хищники менее зависимы от соседей
             baseChance = neighborCount <= 1 ? 0.7 : neighborCount <= 3 ? 0.9 : 0.6;
         } else {
-            // Классические правила для травоядных
+            // Классические правила Conway's Game of Life для жертв
             if (neighborCount === 2 || neighborCount === 3) {
-                baseChance = 0.8;
+                baseChance = 0.95; // увеличиваем с 0.8
             } else if (neighborCount === 1 || neighborCount === 4) {
-                baseChance = 0.3;
+                baseChance = 0.2;
             } else {
-                baseChance = 0.05;
+                baseChance = 0.02; // уменьшаем для более четкой разницы
             }
         }
 
-        // Модификация на основе ДНК и среды
-        const survivalBonus = dna.survival / 100 * 0.5;
-        const adaptationBonus = dna.adaptation / 100 * 0.3;
-        const energyPenalty = (100 - dna.energy) / 100 * 0.2;
+        // Модификация на основе ДНК - увеличиваем роль генов survival/adaptation
+        const normalizedSurvival = dna.survival / 100;
+        const normalizedAdaptation = dna.adaptation / 100;
+        
+        const survivalBonus = normalizedSurvival * 0.3; // увеличиваем влияние с 0.5 до 0.3 от шкалы 0-1
+        const adaptationBonus = normalizedAdaptation * 0.25; // увеличиваем влияние
+        const energyPenalty = (100 - dna.energy) / 100 * 0.4; // Увеличиваем штраф за низкую энергию
+        
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: клетки с очень низкой энергией должны умирать
+        if (dna.energy <= 10) {
+            return 0.0; // Гарантированная смерть при энергии ≤ 10
+        }
         const agePenalty = Math.min(dna.age / 100, 0.3);
         
-        // ГОРАЗДО более сильное влияние факторов среды на выживаемость
-        const tempStress = Math.abs(this.environment.temperature) / 50; // 0 to 1
-        const pressureStress = Math.abs(this.environment.pressure - 50) / 50; // 0 to 1
+        // Более сильное влияние факторов среды на выживаемость с защитой от деления на ноль
+        const tempStress = Math.abs(this.environment.temperature || 0) / 50; // 0 to 1
+        const pressureStress = Math.abs((this.environment.pressure || 50) - 50) / 50; // 0 to 1
         
         // ОТЛАДКА: принудительно логируем расчет стресса
         if (Math.abs(this.environment.temperature) > 40 || Math.abs(this.environment.pressure - 50) > 40) {
-            if (Math.random() < 0.02) { // 2% случаев
+            if (Math.random() < 0.001) { // Уменьшаем логирование с 2% до 0.1%
                 console.log(`🌡️ РАСЧЕТ СТРЕССА: темп=${this.environment.temperature}°C → стресс=${tempStress.toFixed(2)}, давл=${this.environment.pressure}атм → стресс=${pressureStress.toFixed(2)}, экстрим=${tempStress > 0.8 || pressureStress > 0.8 ? 'ДА' : 'НЕТ'}`);
             }
         }
@@ -2015,16 +2208,25 @@ class GameOfLife {
         // Экстремальные условия должны быть АБСОЛЮТНО смертельными
         let envPenalty = 0;
         if (tempStress > 0.8 || pressureStress > 0.8) {
-            // При экстремальных условиях штраф 95-99% (почти гарантированная смерть)
-            envPenalty = 0.95 + (tempStress + pressureStress) * 0.02;
-            console.log(`☠️ КРИТИЧЕСКИЙ ШТРАФ: ${(envPenalty*100).toFixed(0)}% при темп=${this.environment.temperature}°C, давл=${this.environment.pressure}атм`);
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: при экстремальных условиях штраф 98-99.5% (почти абсолютная смерть)
+            envPenalty = 0.98 + Math.min(0.015, (tempStress + pressureStress) * 0.005);
+            if (Math.random() < 0.01) { // Логируем реже чтобы не засорять консоль
+                console.log(`☠️ СМЕРТЕЛЬНЫЙ ШТРАФ: ${(envPenalty*100).toFixed(1)}% при темп=${this.environment.temperature}°C, давл=${this.environment.pressure}атм`);
+            }
         } else {
             // При умеренных условиях обычный штраф
             envPenalty = tempStress * 0.4 + pressureStress * 0.3;
         }
         
         // Адаптация снижает воздействие среды, но не полностью
-        const adaptationResistance = (dna.adaptation / 100) * 0.5; // уменьшили с 0.7 до 0.5
+        let adaptationResistance;
+        if (tempStress > 0.8 || pressureStress > 0.8) {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: при экстремальных условиях адаптация менее эффективна (максимум 50% защиты)
+            adaptationResistance = (dna.adaptation / 100) * 0.5;
+        } else {
+            // При обычных условиях адаптация дает до 80% защиты
+            adaptationResistance = (dna.adaptation / 100) * 0.8;
+        }
         const finalEnvPenalty = envPenalty * (1 - adaptationResistance);
         
         let finalChance = baseChance + survivalBonus + adaptationBonus - energyPenalty - agePenalty - finalEnvPenalty;
@@ -2041,7 +2243,7 @@ class GameOfLife {
             if (Math.random() < 0.1) { // 10% случаев при экстриме
                 console.log(`🧬 ЭКСТРИМ-ВЫЖИВАНИЕ: шанс=${(finalChance*100).toFixed(0)}% | темп=${this.environment.temperature}°C давл=${this.environment.pressure}атм | штраф среды=${(finalEnvPenalty*100).toFixed(0)}% (до адапт: ${(envPenalty*100).toFixed(0)}%) | адапт=${dna.adaptation}`);
             }
-        } else if (Math.random() < 0.01) { // Обычное логирование для нормальных условий
+        } else if (Math.random() < 0.005) { // Уменьшаем обычное логирование
             console.log(`🧬 Выживание клетки: итоговый шанс=${(finalChance*100).toFixed(0)}% | база=${(baseChance*100).toFixed(0)}% выжив=${(survivalBonus*100).toFixed(0)}% адапт=${(adaptationBonus*100).toFixed(0)}% | штрафы: энерг=${(energyPenalty*100).toFixed(0)}% возр=${(agePenalty*100).toFixed(0)}% среда=${(finalEnvPenalty*100).toFixed(0)}% | темп=${this.environment.temperature}°C давл=${this.environment.pressure}атм`);
         }
 
@@ -2120,6 +2322,13 @@ class GameOfLife {
     }
 
     getNeighbors(x, y) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: более безопасная обработка границ
+        if (typeof x !== 'number' || typeof y !== 'number' || x < 0 || y < 0 || 
+            x >= this.gridWidth || y >= this.gridHeight) {
+            console.warn(`Некорректные координаты в getNeighbors: (${x}, ${y})`);
+            return [];
+        }
+        
         const neighbors = [];
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
@@ -2137,6 +2346,13 @@ class GameOfLife {
     }
 
     getNeighborsEvolution(x, y) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: улучшенная проверка границ и типов
+        if (typeof x !== 'number' || typeof y !== 'number' || x < 0 || y < 0 || 
+            x >= this.gridWidth || y >= this.gridHeight) {
+            console.warn(`Некорректные координаты в getNeighborsEvolution: (${x}, ${y})`);
+            return [];
+        }
+        
         const neighbors = [];
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
@@ -2146,7 +2362,8 @@ class GameOfLife {
                 const ny = y + dy;
                 
                 if (nx >= 0 && nx < this.gridWidth && ny >= 0 && ny < this.gridHeight) {
-                    if (this.grid[nx][ny] && this.grid[nx][ny].dna) {
+                    // Исправленная проверка типов для смешанных режимов
+                    if (this.grid[nx][ny] && typeof this.grid[nx][ny] === 'object' && this.grid[nx][ny].dna) {
                         neighbors.push(this.grid[nx][ny]);
                     }
                 }
@@ -2245,21 +2462,33 @@ class GameOfLife {
             }
         }
         
-        document.getElementById('aliveCells').textContent = aliveCells;
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от null DOM элементов
+        const aliveCellsElement = document.getElementById('aliveCells');
+        if (aliveCellsElement) {
+            aliveCellsElement.textContent = aliveCells;
+        }
         
         if (this.evolutionMode && aliveCells > 0) {
             const avgFitness = totalFitness / aliveCells;
-            document.getElementById('avgFitness').textContent = (avgFitness * 100).toFixed(1) + '%';
+            const avgFitnessElement = document.getElementById('avgFitness');
+            if (avgFitnessElement) {
+                avgFitnessElement.textContent = (avgFitness * 100).toFixed(1) + '%';
+            }
             
             const diversity = this.evolutionTracker.calculateDiversity(
-                this.grid.flat().filter(cell => cell && cell.dna)
+                this.grid.flat().filter(cell => cell && typeof cell === 'object' && cell.dna)
             );
-            document.getElementById('diversity').textContent = diversity.toFixed(1);
+            const diversityElement = document.getElementById('diversity');
+            if (diversityElement) {
+                diversityElement.textContent = diversity.toFixed(1);
+            }
         }
         
         if (this.predatorMode) {
-            document.getElementById('predatorCount').textContent = predators;
-            document.getElementById('preyCount').textContent = prey;
+            const predatorCountElement = document.getElementById('predatorCount');
+            const preyCountElement = document.getElementById('preyCount');
+            if (predatorCountElement) predatorCountElement.textContent = predators;
+            if (preyCountElement) preyCountElement.textContent = prey;
         }
         
         // Обновляем новые элементы
@@ -2882,7 +3111,8 @@ class GameOfLife {
         const cells = [];
         for (let x = 0; x < this.gridWidth; x++) {
             for (let y = 0; y < this.gridHeight; y++) {
-                if (this.grid[x][y] && this.grid[x][y].dna) {
+                // Исправление типов: проверяем что клетка - объект, а не boolean
+                if (this.grid[x][y] && typeof this.grid[x][y] === 'object' && this.grid[x][y].dna) {
                     cells.push(this.grid[x][y]);
                 }
             }
@@ -2938,7 +3168,7 @@ class GameOfLife {
         this.scientificMetrics = {
             shannonDiversity: shannon,
             simpsonIndex: 1 - simpson,
-            evenness: shannon / Math.log2(Object.keys(species).length),
+            evenness: Object.keys(species).length > 1 ? shannon / Math.log2(Object.keys(species).length) : 1,
             speciesRichness: Object.keys(species).length
         };
     }
