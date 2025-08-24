@@ -29,8 +29,10 @@ class SoundSystem {
             }
             
             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка валидности параметров
-            const safeFrequency = Math.max(20, Math.min(20000, frequency || 440));
-            const safeDuration = Math.max(0.01, Math.min(1, duration || 0.1));
+            const safeFrequency = Math.max(20, Math.min(20000, Number(frequency) || 440));
+            const safeDuration = Math.max(0.01, Math.min(1, Number(duration) || 0.1));
+            const validTypes = ['sine', 'square', 'sawtooth', 'triangle'];
+            const safeType = validTypes.includes(type) ? type : 'sine';
             
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
@@ -39,7 +41,7 @@ class SoundSystem {
             gainNode.connect(this.audioContext.destination);
             
             oscillator.frequency.setValueAtTime(safeFrequency, this.audioContext.currentTime);
-            oscillator.type = type;
+            oscillator.type = safeType;
             
             gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + safeDuration);
@@ -148,6 +150,12 @@ class CellDNA {
     }
 
     crossover(otherDNA) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка валидности второго родителя
+        if (!otherDNA || typeof otherDNA !== 'object') {
+            console.error('Недопустимый второй родитель для crossover');
+            return this.clone();
+        }
+        
         // Уменьшаем случайное отклонение с 15 до 8 для более реалистичной генетики
         const deviation = 8;
         const newDNA = new CellDNA(
@@ -454,11 +462,15 @@ class ExperimentManager {
             
             const history = evolutionTracker.populationHistory;
             history.forEach((pop, index) => {
-                const fitness = evolutionTracker.fitnessHistory[index];
-                const diversity = evolutionTracker.diversityHistory[index];
-                const genes = evolutionTracker.geneDistribution[index];
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка границ массивов
+                const fitness = index < evolutionTracker.fitnessHistory.length ? 
+                    evolutionTracker.fitnessHistory[index] : null;
+                const diversity = index < evolutionTracker.diversityHistory.length ? 
+                    evolutionTracker.diversityHistory[index] : null;
+                const genes = index < evolutionTracker.geneDistribution.length ? 
+                    evolutionTracker.geneDistribution[index] : null;
                 
-                csv += `${pop.generation},${pop.count},${fitness?.avgFitness || 0},${fitness?.maxFitness || 0},${diversity?.diversity || 0},${genes?.survival || 0},${genes?.reproduction || 0},${genes?.adaptation || 0},${genes?.resistance || 0}\n`;
+                csv += `${pop.generation || index},${pop.count || 0},${fitness?.avgFitness || 0},${fitness?.maxFitness || 0},${diversity?.diversity || 0},${genes?.survival || 0},${genes?.reproduction || 0},${genes?.adaptation || 0},${genes?.resistance || 0}\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -1353,15 +1365,23 @@ class GameOfLife {
     }
 
     exportCharts() {
-        Object.keys(this.charts).forEach(chartName => {
-            const canvas = document.getElementById(chartName + 'Chart');
-            if (canvas) {
-                const link = document.createElement('a');
-                link.download = `${chartName}_chart.png`;
-                link.href = canvas.toDataURL();
-                link.click();
-            }
-        });
+        try {
+            Object.keys(this.charts).forEach(chartName => {
+                const canvas = document.getElementById(chartName + 'Chart');
+                if (canvas && canvas.toDataURL) {
+                    const link = document.createElement('a');
+                    link.download = `${chartName}_chart_${Date.now()}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
+            this.showNotification('📊 Графики экспортированы!', 'success');
+        } catch (error) {
+            console.error('Ошибка при экспорте графиков:', error);
+            this.showNotification('❌ Ошибка экспорта графиков', 'error');
+        }
         
         // Закрываем меню
         const menu = document.querySelector('[style*="z-index: 1000"]');
@@ -1412,7 +1432,23 @@ class GameOfLife {
         // Случайное размещение хищников по всему полю
         while (predatorsAdded < targetPredators && attempts < maxAttempts && emptyCells.length > 0) {
             const randomIndex = Math.floor(Math.random() * emptyCells.length);
-            const {x, y} = emptyCells[randomIndex];
+            const cell = emptyCells[randomIndex];
+            
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка что ячейка всё ещё существует
+            if (!cell || cell.x === undefined || cell.y === undefined) {
+                emptyCells.splice(randomIndex, 1);
+                attempts++;
+                continue;
+            }
+            
+            const {x, y} = cell;
+            
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: повторная проверка что ячейка пустая
+            if (this.grid[x][y]) {
+                emptyCells.splice(randomIndex, 1);
+                attempts++;
+                continue;
+            }
             
             const predatorDNA = new CellDNA(80, 60, 70, 50, 'predator');
             predatorDNA.migrationTendency = 80; // Хищники более мобильны
@@ -2487,15 +2523,16 @@ class GameOfLife {
     applyEcologicalSystemsToGrid(targetGrid) {
         let totalDeaths = 0;
         
-        if (this.diseaseSystem.active) {
+        // Проверяем, что системы существуют перед использованием
+        if (this.diseaseSystem && this.diseaseSystem.active) {
             totalDeaths += this.spreadDiseaseFixed();
         }
         
-        if (this.migrationSystem.active) {
+        if (this.migrationSystem && this.migrationSystem.active) {
             this.processMigrationFixed();
         }
         
-        if (this.symbiosisSystem.active) {
+        if (this.symbiosisSystem && this.symbiosisSystem.active) {
             this.processSymbiosis();
         }
         
@@ -3236,8 +3273,11 @@ class GameOfLife {
             return;
         }
         
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: минимум 2 точки для отрисовки линии
         const data = this.evolutionTracker.populationHistory;
-        if (!data || data.length < 2) return;
+        if (data.length < 2) {
+            return;
+        }
 
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от некорректных данных
         const validData = data.filter(d => d && typeof d.count === 'number' && !isNaN(d.count) && isFinite(d.count));
@@ -3597,10 +3637,10 @@ class GameOfLife {
         
         // Создаем разнообразную экосистему
         for (let i = 0; i < 30; i++) {
-            const x = (Math.random() - 0.5) * 20;
-            const y = (Math.random() - 0.5) * 20;
+            const x = Math.floor((Math.random() - 0.5) * 20);
+            const y = Math.floor((Math.random() - 0.5) * 20);
             const species = Math.random() < 0.15 ? 'predator' : 'prey';
-            pattern.push([Math.floor(x), Math.floor(y), species]);
+            pattern.push([x, y, species]);
         }
         
         return pattern;
@@ -3645,9 +3685,13 @@ class GameOfLife {
         }
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка симбиоза по правильным критериям
-        const symbioticCells = this.getAllCells().filter(cell => 
-            cell.dna.symbiosisCapacity > 75 && cell.dna.achievements.has('symbiotic_partner')
-        );
+        const symbioticCells = this.getAllCells().filter(cell => {
+            // Проверяем, что achievements существует и является Set
+            return cell.dna.symbiosisCapacity > 75 && 
+                   cell.dna.achievements && 
+                   cell.dna.achievements instanceof Set &&
+                   cell.dna.achievements.has('symbiotic_partner');
+        });
         if (symbioticCells.length >= 2 && !this.achievementSystem.achievements.symbiosis_master.unlocked) {
             this.achievementSystem.unlock('symbiosis_master');
         }
@@ -3671,10 +3715,16 @@ class GameOfLife {
     // Обновление тепловой карты
     updateHeatmap() {
         const data = [];
-        for (let x = 0; x < this.gridWidth; x++) {
-            for (let y = 0; y < this.gridHeight; y++) {
+        const maxHeatmapPoints = 1000; // Ограничиваем количество точек для производительности
+        let pointsAdded = 0;
+        
+        // Используем шаг для больших сеток
+        const step = Math.ceil(Math.sqrt((this.gridWidth * this.gridHeight) / maxHeatmapPoints));
+        
+        for (let x = 0; x < this.gridWidth; x += step) {
+            for (let y = 0; y < this.gridHeight; y += step) {
                 const cell = this.grid[x][y];
-                if (cell && cell.dna) {
+                if (cell && cell.dna && pointsAdded < maxHeatmapPoints) {
                     data.push({
                         x: x,
                         y: y,
@@ -3682,6 +3732,7 @@ class GameOfLife {
                         species: cell.dna.species,
                         generation: cell.dna.generation
                     });
+                    pointsAdded++;
                 }
             }
         }
@@ -3753,9 +3804,12 @@ class GameOfLife {
         let sequence = '';
         
         [dna.survival, dna.reproduction, dna.adaptation, dna.resistance].forEach(trait => {
-            const normalized = Math.floor(trait * 25); // 0-100 -> 0-25 нуклеотидов
+            // Убеждаемся, что trait в правильном диапазоне
+            const safeTrait = Math.max(0, Math.min(100, trait || 0));
+            const normalized = Math.floor(safeTrait * 25 / 100); // 0-100 -> 0-25 нуклеотидов
             for (let i = 0; i < 25; i++) {
-                const index = Math.floor((trait + i * 4) % 4);
+                // Убеждаемся, что индекс всегда валиден (0-3)
+                const index = Math.abs(Math.floor((safeTrait + i * 4) % 4)) % 4;
                 sequence += nucleotides[index];
             }
         });
@@ -3998,9 +4052,17 @@ class GameOfLife {
             });
         }
         
-        // Очищаем массивы
+        // Очищаем массивы и данные
         this.grid = null;
         this.nextGrid = null;
+        this.heatmapData = [];
+        this.evolutionTracker = null;
+        this.experimentManager = null;
+        
+        // Удаляем ссылку из window
+        if (window.game === this) {
+            window.game = null;
+        }
         
         console.log('Ресурсы успешно очищены');
     }
