@@ -308,7 +308,6 @@ Generation,Population,AvgFitness,Diversity,Predators,Prey
 Если проект оказался полезным, поставьте ⭐ на [GitHub](https://github.com/EugenVar/Game-of-Life) - это поможет другим исследователям и студентам найти этот образовательный инструмент!
 
 ### 🔗 Полезные ссылки
-- [🚀 **Живая демо-версия**](https://eugenvar.github.io/Game-of-Life/)
 - [📖 **Документация**](https://github.com/EugenVar/Game-of-Life#readme)
 - [🐛 **Сообщить о проблеме**](https://github.com/EugenVar/Game-of-Life/issues)
 - [💡 **Предложить улучшение**](https://github.com/EugenVar/Game-of-Life/issues/new)
@@ -316,10 +315,6 @@ Generation,Population,AvgFitness,Diversity,Predators,Prey
 ---
 
 <div align="center">
-
-**🧬 Evolution Game of Life - Где наука встречается с интерактивностью! 🧬**
-
-*Создано с помощью [Claude Code](https://claude.ai/code) для образования и исследований*
 
 [![GitHub Stars](https://img.shields.io/github/stars/EugenVar/Game-of-Life?style=social)](https://github.com/EugenVar/Game-of-Life)
 [![GitHub Forks](https://img.shields.io/github/forks/EugenVar/Game-of-Life?style=social)](https://github.com/EugenVar/Game-of-Life)
