@@ -1,0 +1,13 @@
+# Исключаем отладочные файлы
+FINAL_CHECK.md
+debug_*.html
+test_*.html
+
+# Системные файлы
+.DS_Store
+.vscode/
+*.log
+
+# Временные файлы
+*.tmp
+*.bak

@@ -1,0 +1,834 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.controls {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(45deg, #6c757d, #495057);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+.btn-pattern {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    font-size: 12px;
+    padding: 8px 15px;
+}
+
+.btn-pattern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+.slider {
+    width: 100px;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.select {
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.select:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.checkbox {
+    margin-right: 8px;
+    transform: scale(1.2);
+}
+
+.evolution-controls {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.evolution-controls.active {
+    opacity: 1;
+}
+
+.game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.main-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.stats {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 15px 25px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-item span:last-child {
+    font-size: 24px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.grid-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#gameGrid {
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: crosshair;
+    background: white;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+}
+
+.genetics-info {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    min-width: 250px;
+    max-width: 300px;
+}
+
+.genetics-info h4 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.cell-info {
+    font-size: 14px;
+}
+
+.dna-trait {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 5px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 5px;
+}
+
+.trait-name {
+    font-weight: bold;
+}
+
+.trait-value {
+    color: #007bff;
+}
+
+.graphs-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+    max-width: 800px;
+}
+
+.graph-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.graph-panel h4 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.graph-panel canvas {
+    width: 100%;
+    height: 120px;
+    border-radius: 8px;
+}
+
+.patterns {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    text-align: center;
+    margin-top: 20px;
+}
+
+.patterns h3 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.pattern-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.info {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+details {
+    cursor: pointer;
+}
+
+summary {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.info ul {
+    list-style-position: inside;
+    line-height: 1.6;
+    color: #666;
+}
+
+.info li {
+    margin-bottom: 8px;
+}
+
+.evolution-info {
+    margin-top: 15px;
+}
+
+.evolution-description {
+    margin-top: 10px;
+}
+
+.evolution-description p {
+    margin: 10px 0 5px 0;
+    font-weight: 600;
+}
+
+.evolution-description ul {
+    margin-left: 15px;
+    margin-bottom: 15px;
+}
+
+/* Адаптивный дизайн */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .control-group {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .stats {
+        gap: 20px;
+    }
+    
+    .pattern-buttons {
+        gap: 8px;
+    }
+    
+    .btn-pattern {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
+}
+
+/* Анимации */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.btn:active {
+    animation: pulse 0.2s ease;
+}
+
+/* Стили для активного состояния кнопки старт/пауза */
+.btn-primary.playing {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.btn-primary.playing:hover {
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.btn-save {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-load {
+    background: linear-gradient(45deg, #17a2b8, #138496);
+    color: white;
+    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+}
+
+.btn-export {
+    background: linear-gradient(45deg, #ffc107, #e0a800);
+    color: #212529;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+}
+
+.btn-breed {
+    background: linear-gradient(45deg, #e83e8c, #d91a72);
+    color: white;
+    box-shadow: 0 4px 15px rgba(232, 62, 140, 0.3);
+    font-size: 12px;
+    padding: 6px 12px;
+    margin: 3px;
+}
+
+.btn-kill {
+    background: linear-gradient(45deg, #dc3545, #c82333);
+    color: white;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    font-size: 12px;
+    padding: 6px 12px;
+    margin: 3px;
+}
+
+.breeding-controls {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.save-load-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.saved-experiments {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.experiment-item {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.experiment-item:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.experiment-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.experiment-details {
+    font-size: 12px;
+    color: #666;
+}
+
+.predator-cell {
+    border: 2px solid #ff4444 !important;
+}
+
+.environment-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    opacity: 0.3;
+}
+
+.particles-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffd700;
+    animation: particle-float 1s ease-out forwards;
+}
+
+@keyframes particle-float {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.5) translateY(-20px);
+    }
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 123, 255, 0.95);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    animation: slide-in 0.3s ease-out;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* Темная тема */
+body.dark-theme {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e0e0e0;
+}
+
+.dark-theme .controls,
+.dark-theme .stats,
+.dark-theme .grid-container,
+.dark-theme .genetics-info,
+.dark-theme .graph-panel,
+.dark-theme .patterns,
+.dark-theme .info,
+.dark-theme .save-load-panel {
+    background: rgba(30, 30, 30, 0.95);
+    color: #e0e0e0;
+}
+
+.dark-theme #gameGrid {
+    background: #2d2d2d;
+    border-color: #444;
+}
+
+.dark-theme .experiment-item {
+    background: #383838;
+    border-color: #555;
+    color: #e0e0e0;
+}
+
+.dark-theme .experiment-item:hover {
+    background: #444;
+}
+
+/* Стили для информационных вкладок */
+.info-content, 
+.evolution-description, 
+.hotkeys-content, 
+.predator-description, 
+.environment-description, 
+.breeding-description, 
+.data-description, 
+ 
+.tips-description,
+.achievements-description,
+.advanced-description,
+.scientific-description {
+    margin-top: 10px;
+    line-height: 1.6;
+}
+
+.hotkeys-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.hotkey-group {
+    background: rgba(0,0,0,0.03);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.hotkey-group h4 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1rem;
+}
+
+.hotkey-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 5px 0;
+}
+
+kbd {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2), inset 0 0 0 2px #fff;
+    color: #495057;
+    display: inline-block;
+    font-family: monospace;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: center;
+}
+
+.controls-help {
+    margin: 15px 0;
+    text-align: left;
+}
+
+.control-help {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 5px 0;
+}
+
+.control-help button {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.tips-description strong {
+    color: #007bff;
+}
+
+.predator-description ul ul,
+.environment-description ul ul,
+.breeding-description ol {
+    margin-left: 20px;
+    margin-top: 8px;
+}
+
+.breeding-description ol li {
+    margin-bottom: 5px;
+}
+
+/* Стили для новых информационных блоков */
+.achievements-description ul li,
+.advanced-description ul li,
+.scientific-description ul li {
+    margin-bottom: 6px;
+    padding-left: 5px;
+}
+
+.achievements-description strong,
+.advanced-description strong,
+.scientific-description strong {
+    color: #007bff;
+}
+
+.scientific-description code {
+    background: rgba(0,0,0,0.05);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.achievement-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: linear-gradient(45deg, #ffc107, #e0a800);
+    color: #212529;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    z-index: 1000;
+    animation: slideInBounce 0.5s ease-out;
+    max-width: 350px;
+    word-wrap: break-word;
+    border-left: 4px solid #ff9800;
+}
+
+@keyframes slideInBounce {
+    0% {
+        transform: translateX(100%) scale(0.8);
+        opacity: 0;
+    }
+    60% {
+        transform: translateX(-10px) scale(1.05);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+
+/* Темная тема для информационных блоков */
+.dark-theme .hotkey-group {
+    background: rgba(255,255,255,0.05);
+}
+
+.dark-theme .hotkey-group h4 {
+    color: #e0e0e0;
+}
+
+.dark-theme kbd {
+    background: #495057;
+    border-color: #6c757d;
+    color: #e0e0e0;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.4), inset 0 0 0 2px #6c757d;
+}
+
+.dark-theme .tips-description strong {
+    color: #4dabf7;
+}
+
+/* Адаптивный дизайн для информационных блоков */
+@media (max-width: 768px) {
+    .hotkeys-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .hotkey-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    kbd {
+        min-width: auto;
+    }
+    
+    .control-help {
+        flex-wrap: wrap;
+    }
+}
+
