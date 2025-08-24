@@ -1682,6 +1682,21 @@ class GameOfLife {
                     currentCell.dna.age++;
                     currentCell.dna.energy = Math.max(0, currentCell.dna.energy - 5);
                     
+                    // 💀 СМЕРТЬ ОТ СТАРОСТИ - принудительная проверка возраста
+                    if (currentCell.dna.age >= currentCell.dna.lifespan) {
+                        deaths++;
+                        this.soundSystem.death();
+                        this.createParticle(x * this.cellSize, y * this.cellSize, '#888888');
+                        
+                        // Логируем смерть от старости
+                        if (Math.random() < 0.05) { // 5% случаев
+                            console.log(`⚰️ СМЕРТЬ ОТ СТАРОСТИ: возраст=${currentCell.dna.age}, лимит=${currentCell.dna.lifespan.toFixed(0)}, поколение=${currentCell.dna.generation}, вид=${currentCell.dna.species}`);
+                        }
+                        
+                        // Пропускаем все дальнейшие проверки - клетка умерла
+                        continue;
+                    }
+                    
                     // Хищники охотятся на травоядных
                     if (currentCell.dna.species === 'predator' && this.predatorMode) {
                         const prey = neighbors.filter(n => n.dna.species === 'prey');
