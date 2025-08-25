@@ -91,11 +91,17 @@ class CellDNA {
     }
 
     calculateFitness() {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка валидности генов перед расчетом
+        const safeSurvival = Math.max(0, Math.min(100, this.survival || 0));
+        const safeReproduction = Math.max(0, Math.min(100, this.reproduction || 0));
+        const safeAdaptation = Math.max(0, Math.min(100, this.adaptation || 0));
+        const safeResistance = Math.max(0, Math.min(100, this.resistance || 0));
+        
         // Нормализуем значения генов к диапазону 0-1
-        const normalizedSurvival = this.survival / 100;
-        const normalizedReproduction = this.reproduction / 100;
-        const normalizedAdaptation = this.adaptation / 100;
-        const normalizedResistance = this.resistance / 100;
+        const normalizedSurvival = safeSurvival / 100;
+        const normalizedReproduction = safeReproduction / 100;
+        const normalizedAdaptation = safeAdaptation / 100;
+        const normalizedResistance = safeResistance / 100;
         
         if (this.species === 'predator') {
             // Для хищников важнее выживание и адаптация
@@ -107,7 +113,8 @@ class CellDNA {
 
     mutate(mutationRate, environment = {}) {
         const envFactor = this.getEnvironmentFactor(environment);
-        const actualMutationRate = mutationRate * envFactor;
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничиваем максимальную скорость мутаций до 50%
+        const actualMutationRate = Math.min(50, mutationRate * envFactor);
         
         // Исправляем логику: resistance влияет на силу мутации, а не на вероятность
         // Высокое сопротивление уменьшает размер мутационных изменений
@@ -141,12 +148,22 @@ class CellDNA {
     }
 
     getEnvironmentFactor(environment) {
-        const tempStress = Math.abs(environment.temperature || 0) / 50;
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от null/undefined environment
+        if (!environment || typeof environment !== 'object') {
+            return 1; // Нейтральный фактор
+        }
+        
+        const temperature = Number(environment.temperature) || 0;
+        const pressure = Number(environment.pressure) || 50;
+        
+        const tempStress = Math.abs(temperature) / 50;
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: учитываем как низкое, так и высокое давление
         const optimalPressure = 50; // Оптимальное давление
-        const pressureDeviation = Math.abs((environment.pressure || 50) - optimalPressure);
+        const pressureDeviation = Math.abs(pressure - optimalPressure);
         const pressureStress = pressureDeviation / 50; // Нормализованное отклонение 0-1
-        return 1 + (tempStress + pressureStress) * 0.5;
+        
+        // Ограничиваем максимальный фактор до 2x
+        return Math.min(2, 1 + (tempStress + pressureStress) * 0.5);
     }
 
     crossover(otherDNA) {
@@ -183,6 +200,10 @@ class CellDNA {
         newDNA.immuneSystem = Math.max(0, Math.min(100, (this.immuneSystem + otherDNA.immuneSystem) / 2 + (Math.random() - 0.5) * smallDeviation));
         newDNA.symbiosisCapacity = Math.max(0, Math.min(100, (this.symbiosisCapacity + otherDNA.symbiosisCapacity) / 2 + (Math.random() - 0.5) * smallDeviation));
         
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: наследование продолжительности жизни от родителей
+        newDNA.lifespan = Math.max(20, Math.min(100, (this.lifespan + otherDNA.lifespan) / 2 + (Math.random() - 0.5) * smallDeviation));
+        newDNA.diseaseResistance = Math.max(0, Math.min(100, (this.diseaseResistance + otherDNA.diseaseResistance) / 2 + (Math.random() - 0.5) * smallDeviation));
+        
         return newDNA;
     }
 
@@ -192,10 +213,15 @@ class CellDNA {
         newDNA.age = 0; // КЛОНЫ НАЧИНАЮТ С 0 ЛЕТ!!!
         newDNA.generation = this.generation + 1;
         newDNA.energy = 100; // Полная энергия
+        newDNA.fitness = newDNA.calculateFitness();
         newDNA.geneticMemory = [...this.geneticMemory];
         newDNA.migrationTendency = this.migrationTendency;
         newDNA.immuneSystem = this.immuneSystem;
         newDNA.symbiosisCapacity = this.symbiosisCapacity;
+        newDNA.lifespan = this.lifespan;
+        newDNA.diseaseResistance = this.diseaseResistance;
+        // Клонируем достижения как новый Set
+        newDNA.achievements = new Set(this.achievements);
         return newDNA;
     }
     
@@ -269,10 +295,12 @@ class CellDNA {
     
     // Заражение
     infect() {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования diseaseResistance
+        const resistance = this.diseaseResistance || 0;
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: логика сопротивления болезням была обращена
-        if (Math.random() < (100 - this.diseaseResistance) / 100) {
+        if (Math.random() < (100 - resistance) / 100) {
             this.achievements.add('infected');
-            this.energy *= 0.7; // Болезнь снижает энергию
+            this.energy = Math.max(0, this.energy * 0.7); // Болезнь снижает энергию
             return true;
         }
         return false;
@@ -363,10 +391,12 @@ class AchievementSystem {
     
     getProgress() {
         const total = Object.keys(this.achievements).length;
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от деления на ноль
-        const percentage = total > 0 ? Math.round((this.unlockedCount / total) * 100) : 0;
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от деления на ноль и отрицательных значений
+        const safeUnlocked = Math.max(0, this.unlockedCount || 0);
+        const safeTotal = Math.max(1, total); // минимум 1 для избежания деления на ноль
+        const percentage = Math.min(100, Math.max(0, Math.round((safeUnlocked / safeTotal) * 100)));
         return { 
-            unlocked: this.unlockedCount || 0, 
+            unlocked: safeUnlocked, 
             total: total, 
             percentage: percentage 
         };
@@ -426,9 +456,15 @@ class ExperimentManager {
 
     loadExperiments() {
         try {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка доступности localStorage
+            if (typeof(Storage) === "undefined" || !window.localStorage) {
+                console.warn('localStorage недоступен');
+                return [];
+            }
             const saved = localStorage.getItem('gameOfLife_experiments');
             return saved ? JSON.parse(saved) : [];
         } catch (e) {
+            console.error('Ошибка загрузки экспериментов:', e);
             return [];
         }
     }
@@ -461,6 +497,12 @@ class ExperimentManager {
             let csv = 'Generation,Population,AvgFitness,MaxFitness,Diversity,AvgSurvival,AvgReproduction,AvgAdaptation,AvgResistance\n';
             
             const history = evolutionTracker.populationHistory;
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования и длины истории
+            if (!history || history.length === 0) {
+                console.warn('История популяции пуста');
+                return;
+            }
+            
             history.forEach((pop, index) => {
                 // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка границ массивов
                 const fitness = index < evolutionTracker.fitnessHistory.length ? 
@@ -580,12 +622,13 @@ class EvolutionTracker {
 
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничиваем размер всех историй
         if (this.populationHistory.length > this.maxHistoryLength) {
-            this.populationHistory.shift();
-            this.fitnessHistory.shift();
-            this.diversityHistory.shift();
-            this.geneDistribution.shift();
-            this.predatorPreyHistory.shift();
-            this.environmentHistory.shift();
+            // Безопасное удаление с проверкой существования
+            if (this.populationHistory.length > 0) this.populationHistory.shift();
+            if (this.fitnessHistory.length > 0) this.fitnessHistory.shift();
+            if (this.diversityHistory.length > 0) this.diversityHistory.shift();
+            if (this.geneDistribution.length > 0) this.geneDistribution.shift();
+            if (this.predatorPreyHistory.length > 0) this.predatorPreyHistory.shift();
+            if (this.environmentHistory.length > 0) this.environmentHistory.shift();
         }
     }
 
@@ -602,8 +645,12 @@ class EvolutionTracker {
             // Случайная выборка для оптимизации
             sampledCells = [];
             const indices = new Set();
-            while (indices.size < maxSample) {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничиваем количество попыток
+            const maxAttempts = maxSample * 10;
+            let attempts = 0;
+            while (indices.size < maxSample && attempts < maxAttempts) {
                 indices.add(Math.floor(Math.random() * cells.length));
+                attempts++;
             }
             indices.forEach(i => sampledCells.push(cells[i]));
         }
@@ -904,16 +951,23 @@ class GameOfLife {
                         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка минимальной дистанции и энергии
                         if (symbioticNeighbors.length > 0 && 
                             this.grid[x][y].dna.symbiosisCapacity > 50 &&
-                            this.grid[x][y].dna.energy > 10) { // Минимальная энергия для симбиоза
+                            this.grid[x][y].dna.energy > 20) { // Минимальная энергия для симбиоза увеличена
+                            
+                            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: симбиоз требует энергетических затрат
+                            const symbiosisCost = 5; // Стоимость установления симбиоза
+                            this.grid[x][y].dna.energy -= symbiosisCost;
                             
                             // Обе клетки должны иметь способность к симбиозу
                             const energyGain = this.symbiosisSystem.benefit * symbioticNeighbors.length * 
                                              (this.grid[x][y].dna.symbiosisCapacity / 100);
                             
                             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ограничение максимального прироста энергии
-                            const maxGain = Math.min(energyGain, 10); // Макс +10 энергии за ход
+                            const maxGain = Math.min(energyGain, 8); // Макс +8 энергии за ход (меньше затрат)
                             this.grid[x][y].dna.energy = Math.min(100, this.grid[x][y].dna.energy + maxGain);
-                            this.grid[x][y].dna.achievements.add('symbiotic_partner');
+                            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования achievements
+                            if (this.grid[x][y].dna.achievements && this.grid[x][y].dna.achievements instanceof Set) {
+                                this.grid[x][y].dna.achievements.add('symbiotic_partner');
+                            }
                             
                             // Симбиоз взаимовыгоден
                             symbioticNeighbors.forEach(n => {
@@ -1000,18 +1054,26 @@ class GameOfLife {
         }
         
         const padding = 2;
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от неположительных размеров
-        const safeWidth = Math.max(1, this.gridWidth) * Math.max(1, this.cellSize) + padding;
-        const safeHeight = Math.max(1, this.gridHeight) * Math.max(1, this.cellSize) + padding;
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от неположительных размеров и переполнения
+        const maxCanvasSize = 4096; // Максимальный размер canvas для большинства браузеров
+        const safeWidth = Math.min(maxCanvasSize, Math.max(1, this.gridWidth) * Math.max(1, this.cellSize) + padding);
+        const safeHeight = Math.min(maxCanvasSize, Math.max(1, this.gridHeight) * Math.max(1, this.cellSize) + padding);
         
         this.canvas.width = safeWidth;
         this.canvas.height = safeHeight;
         this.canvas.style.border = '1px solid #ccc';
+        
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: восстанавливаем контекст после изменения размера
+        this.ctx = this.canvas.getContext('2d');
+        if (!this.ctx) {
+            console.error('Не удалось получить контекст 2D после изменения размера!');
+        }
     }
 
     resizeGrid(newSize) {
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: валидация размера сетки
-        const validSize = Math.max(10, Math.min(100, parseInt(newSize) || 50));
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: валидация размера сетки с защитой от переполнения памяти
+        const maxSize = 150; // Ограничиваем максимальный размер для предотвращения переполнения
+        const validSize = Math.max(10, Math.min(maxSize, parseInt(newSize) || 50));
         
         this.gridWidth = validSize;
         this.gridHeight = validSize;
@@ -1081,6 +1143,8 @@ class GameOfLife {
         
         // Ползунки с безопасной привязкой
         bindSafeEvent('speedSlider', 'input', (e) => {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования target
+            if (!e || !e.target) return;
             const value = parseInt(e.target.value);
             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка на валидность
             this.speed = !isNaN(value) ? value : 5; // fallback на 5
@@ -1113,33 +1177,44 @@ class GameOfLife {
             }
         });
 
-        document.getElementById('gridSize').addEventListener('change', (e) => {
+        bindSafeEvent('gridSize', 'change', (e) => {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования target
+            if (!e || !e.target) return;
             const value = parseInt(e.target.value);
-            if (!isNaN(value) && value >= 10 && value <= 100) {
+            if (!isNaN(value) && value >= 10 && value <= 150) {
                 this.resizeGrid(value);
             }
-        });
+        }, 'grid size');
 
-        document.getElementById('mutationRate').addEventListener('input', (e) => {
+        bindSafeEvent('mutationRate', 'input', (e) => {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования target
+            if (!e || !e.target) return;
             const value = parseInt(e.target.value);
             this.mutationRate = !isNaN(value) ? Math.max(0, Math.min(100, value)) : 2;
-            document.getElementById('mutationValue').textContent = this.mutationRate;
-        });
+            const mutationValueEl = document.getElementById('mutationValue');
+            if (mutationValueEl) mutationValueEl.textContent = this.mutationRate;
+        }, 'mutation rate');
 
-        document.getElementById('temperature').addEventListener('input', (e) => {
+        bindSafeEvent('temperature', 'input', (e) => {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования target
+            if (!e || !e.target) return;
             const value = parseInt(e.target.value);
             this.environment.temperature = !isNaN(value) ? Math.max(-50, Math.min(50, value)) : 0;
-            document.getElementById('temperatureValue').textContent = this.environment.temperature + '°C';
-        });
+            const tempValueEl = document.getElementById('temperatureValue');
+            if (tempValueEl) tempValueEl.textContent = this.environment.temperature + '°C';
+        }, 'temperature');
 
-        document.getElementById('pressure').addEventListener('input', (e) => {
+        bindSafeEvent('pressure', 'input', (e) => {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования target
+            if (!e || !e.target) return;
             const value = parseInt(e.target.value);
             this.environment.pressure = !isNaN(value) ? Math.max(0, Math.min(100, value)) : 50;
-            document.getElementById('pressureValue').textContent = this.environment.pressure;
-        });
+            const pressureValueEl = document.getElementById('pressureValue');
+            if (pressureValueEl) pressureValueEl.textContent = this.environment.pressure;
+        }, 'pressure');
 
         // Чекбоксы режимов
-        document.getElementById('evolutionMode').addEventListener('change', (e) => {
+        bindSafeEvent('evolutionMode', 'change', (e) => {
             console.log('Evolution mode изменен:', e.target.checked);
             this.evolutionMode = e.target.checked;
             this.toggleEvolutionUI();
@@ -1147,9 +1222,9 @@ class GameOfLife {
                 console.log('Инициализируем эволюцию...');
                 this.initializeEvolution();
             }
-        });
+        }, 'evolution mode');
 
-        document.getElementById('predatorMode').addEventListener('change', (e) => {
+        bindSafeEvent('predatorMode', 'change', (e) => {
             console.log('Predator mode изменен:', e.target.checked);
             this.predatorMode = e.target.checked;
             this.togglePredatorUI();
@@ -1157,9 +1232,9 @@ class GameOfLife {
                 console.log('Добавляем хищников...');
                 this.addPredators();
             }
-        });
+        }, 'predator mode');
 
-        document.getElementById('soundEffects').addEventListener('change', (e) => {
+        bindSafeEvent('soundEffects', 'change', (e) => {
             this.soundSystem.enabled = e.target.checked;
         });
 
@@ -1179,6 +1254,11 @@ class GameOfLife {
         // Pattern buttons
         document.querySelectorAll('.btn-pattern').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования dataset и pattern
+                if (!e.target || !e.target.dataset || !e.target.dataset.pattern) {
+                    console.error('Паттерн не найден в dataset');
+                    return;
+                }
                 const pattern = e.target.dataset.pattern;
                 this.addPattern(pattern);
             });
@@ -1192,12 +1272,15 @@ class GameOfLife {
                     this.togglePlayPause();
                     break;
                 case 'KeyR':
+                    e.preventDefault();
                     this.randomize();
                     break;
                 case 'KeyC':
+                    e.preventDefault();
                     this.clear();
                     break;
                 case 'KeyE':
+                    e.preventDefault();
                     const evolutionCheckbox = document.getElementById('evolutionMode');
                     if (evolutionCheckbox) {
                         evolutionCheckbox.checked = !evolutionCheckbox.checked;
@@ -1210,7 +1293,16 @@ class GameOfLife {
                         this.saveExperiment();
                     }
                     break;
+                case 'KeyP':
+                    e.preventDefault();
+                    const predatorCheckbox = document.getElementById('predatorMode');
+                    if (predatorCheckbox) {
+                        predatorCheckbox.checked = !predatorCheckbox.checked;
+                        predatorCheckbox.dispatchEvent(new Event('change'));
+                    }
+                    break;
                 case 'KeyT':
+                    e.preventDefault();
                     this.toggleTheme();
                     break;
             }
@@ -1280,6 +1372,11 @@ class GameOfLife {
 
     toggleSaveLoadPanel() {
         const panel = document.getElementById('saveLoadPanel');
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования панели
+        if (!panel) {
+            console.error('Панель сохранения не найдена');
+            return;
+        }
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         if (panel.style.display === 'block') {
             this.updateExperimentsList();
@@ -1521,6 +1618,12 @@ class GameOfLife {
     }
 
     loadFromFile(event) {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования event и target
+        if (!event || !event.target || !event.target.files) {
+            console.error('Нет файлов для загрузки');
+            return;
+        }
+        
         const file = event.target.files[0];
         if (!file) return;
         
@@ -1918,6 +2021,12 @@ class GameOfLife {
         }
         
         const rect = this.canvas.getBoundingClientRect();
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка что getBoundingClientRect вернул валидный объект
+        if (!rect) {
+            console.error('Не удалось получить границы canvas');
+            return;
+        }
+        
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от деления на ноль в cellSize
         const safeCellSize = Math.max(1, this.cellSize || 12);
         const x = Math.floor((e.clientX - rect.left) / safeCellSize);
@@ -1994,6 +2103,11 @@ class GameOfLife {
         }
         
         const rect = this.canvas.getBoundingClientRect();
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка что getBoundingClientRect вернул валидный объект
+        if (!rect) {
+            return;
+        }
+        
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от деления на ноль в cellSize
         const safeCellSize = Math.max(1, this.cellSize || 12);
         const x = Math.floor((e.clientX - rect.left) / safeCellSize);
@@ -2099,6 +2213,9 @@ class GameOfLife {
         console.log('start() вызвана, isPlaying:', this.isPlaying);
         if (this.isPlaying) {
             this.lastTime = performance.now();
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: инициализация FPS счетчиков при старте
+            this.fpsLastTime = performance.now();
+            this.frameCount = 0;
             console.log('Начинаем анимацию...');
             this.animate();
         }
@@ -2128,9 +2245,9 @@ class GameOfLife {
         // Обновление FPS с защитой от утечек памяти
         this.frameCount++;
         if (currentTime - this.fpsLastTime >= 1000) {
-            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: правильный расчет FPS
-            const timeDiff = (currentTime - this.fpsLastTime) / 1000; // секунды
-            this.currentFPS = this.frameCount / timeDiff;
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: правильный расчет FPS с защитой от деления на ноль
+            const timeDiff = Math.max(0.001, (currentTime - this.fpsLastTime) / 1000); // секунды, минимум 1мс
+            this.currentFPS = Math.min(999, this.frameCount / timeDiff); // Ограничиваем максимальный FPS
             this.frameCount = 0;
             this.fpsLastTime = currentTime;
             // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: безопасное обновление FPS элемента
@@ -2149,6 +2266,11 @@ class GameOfLife {
 
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: защита от race conditions в анимации
         if (this.isPlaying) {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: отменяем предыдущий кадр анимации если есть
+            if (this.animationId) {
+                cancelAnimationFrame(this.animationId);
+            }
+            
             // Сохраняем ID сразу, чтобы избежать двойного запуска
             this.animationId = requestAnimationFrame(() => {
                 // Проверяем состояние после получения кадра
@@ -2616,10 +2738,14 @@ class GameOfLife {
         const migratingCells = [];
         for (let x = 0; x < this.gridWidth; x++) {
             for (let y = 0; y < this.gridHeight; y++) {
-                if (this.grid[x][y] && this.grid[x][y].dna && 
-                    Math.random() < (this.grid[x][y].dna.migrationTendency / 100) * this.migrationSystem.strength) {
-                    migratingCells.push({x, y, cell: this.grid[x][y]});
-                    // НЕ удаляем клетку сразу - только пометим для миграции
+                if (this.grid[x][y] && this.grid[x][y].dna) {
+                    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования migrationTendency
+                    const migrationChance = ((this.grid[x][y].dna.migrationTendency || 0) / 100) * 
+                                          (this.migrationSystem.strength || 0.5);
+                    if (Math.random() < migrationChance) {
+                        migratingCells.push({x, y, cell: this.grid[x][y]});
+                        // НЕ удаляем клетку сразу - только пометим для миграции
+                    }
                 }
             }
         }
@@ -2647,7 +2773,9 @@ class GameOfLife {
                     for (let dy = -1; dy <= 1 && !placed; dy++) {
                         const fallbackX = Math.max(0, Math.min(this.gridWidth - 1, newX + dx));
                         const fallbackY = Math.max(0, Math.min(this.gridHeight - 1, newY + dy));
-                        if (!this.grid[fallbackX][fallbackY]) {
+                        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: не перемещаем клетку саму в себя
+                        if (!this.grid[fallbackX][fallbackY] && 
+                            (fallbackX !== migrant.x || fallbackY !== migrant.y)) {
                             // Удаляем только после нахождения места
                             this.grid[migrant.x][migrant.y] = null;
                             this.grid[fallbackX][fallbackY] = migrant.cell;
@@ -2757,6 +2885,9 @@ class GameOfLife {
         
         const avgReproduction = neighbors.reduce((sum, cell) => sum + cell.dna.reproduction, 0) / neighbors.length;
         const avgEnergy = neighbors.reduce((sum, cell) => sum + cell.dna.energy, 0) / neighbors.length;
+        
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: размножение требует минимум 30 энергии
+        if (avgEnergy < 30) return 0;
         
         let baseChance = neighbors.length === 3 ? 0.7 : neighbors.length === 2 ? 0.4 : 0.2;
         
@@ -3047,11 +3178,12 @@ class GameOfLife {
             for (let y = 0; y < this.gridHeight; y++) {
                 if (this.grid[x][y]) {
                     aliveCells++;
-                    if (this.evolutionMode && this.grid[x][y].dna) {
-                        totalFitness += this.grid[x][y].dna.fitness;
+                    // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка типа объекта перед доступом к dna
+                    if (this.evolutionMode && typeof this.grid[x][y] === 'object' && this.grid[x][y].dna) {
+                        totalFitness += this.grid[x][y].dna.fitness || 0;
                         if (this.grid[x][y].dna.species === 'predator') {
                             predators++;
-                        } else {
+                        } else if (this.grid[x][y].dna.species === 'prey') {
                             prey++;
                         }
                     }
@@ -3113,28 +3245,33 @@ class GameOfLife {
                         
                         // Особая визуализация для хищников
                         if (this.grid[x][y].dna.species === 'predator') {
+                            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: адаптивное смещение для маленьких клеток
+                            const offset = Math.min(2, Math.floor(this.cellSize / 4));
                             this.ctx.fillRect(
-                                x * this.cellSize + 2,
-                                y * this.cellSize + 2,
-                                this.cellSize - 4,
-                                this.cellSize - 4
+                                x * this.cellSize + offset,
+                                y * this.cellSize + offset,
+                                this.cellSize - offset * 2,
+                                this.cellSize - offset * 2
                             );
                             
                             // Рамка для хищника
                             this.ctx.strokeStyle = '#ff4444';
                             this.ctx.lineWidth = 1;
+                            const borderOffset = Math.min(1, Math.floor(this.cellSize / 6));
                             this.ctx.strokeRect(
-                                x * this.cellSize + 1,
-                                y * this.cellSize + 1,
-                                this.cellSize - 2,
-                                this.cellSize - 2
+                                x * this.cellSize + borderOffset,
+                                y * this.cellSize + borderOffset,
+                                this.cellSize - borderOffset * 2,
+                                this.cellSize - borderOffset * 2
                             );
                         } else {
+                            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: адаптивное смещение для обычных клеток
+                            const offset = Math.min(1, Math.floor(this.cellSize / 6));
                             this.ctx.fillRect(
-                                x * this.cellSize + 1,
-                                y * this.cellSize + 1,
-                                this.cellSize - 2,
-                                this.cellSize - 2
+                                x * this.cellSize + offset,
+                                y * this.cellSize + offset,
+                                this.cellSize - offset * 2,
+                                this.cellSize - offset * 2
                             );
                         }
                         
@@ -3179,6 +3316,11 @@ class GameOfLife {
 
     drawEnvironmentBackground() {
         if (!this.evolutionMode) return;
+        
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка существования контекста
+        if (!this.ctx || !this.canvas) {
+            return;
+        }
         
         // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: environment всегда инициализирован в конструкторе
         if (!this.environment) {
@@ -3612,7 +3754,13 @@ class GameOfLife {
         };
         
         if (patterns[patternName]) {
-            patterns[patternName].forEach(([dx, dy, species]) => {
+            patterns[patternName].forEach((coords) => {
+                // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: проверка валидности входных данных
+                if (!Array.isArray(coords) || coords.length < 2) return;
+                
+                const [dx, dy, species = null] = coords;
+                if (typeof dx !== 'number' || typeof dy !== 'number') return;
+                
                 const x = centerX + dx;
                 const y = centerY + dy;
                 if (x >= 0 && x < this.gridWidth && y >= 0 && y < this.gridHeight) {
@@ -3828,9 +3976,11 @@ class GameOfLife {
         
         const notification = document.createElement('div');
         notification.className = 'notification';
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: правильный расчет позиции после удаления старых
+        const currentNotifications = document.querySelectorAll('.notification');
         notification.style.cssText = `
             position: fixed;
-            top: ${20 + existingNotifications.length * 70}px;
+            top: ${20 + currentNotifications.length * 70}px;
             right: 20px;
             background: rgba(0, 123, 255, 0.95);
             color: white;
@@ -3853,14 +4003,19 @@ class GameOfLife {
         notification.textContent = message;
         document.body.appendChild(notification);
         
-        setTimeout(() => {
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: сохраняем ссылки на таймеры для очистки
+        const hideTimeout = setTimeout(() => {
             notification.style.animation = 'slideOut 0.3s ease-out';
-            setTimeout(() => {
+            const removeTimeout = setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
             }, 300);
+            // Очищаем ссылку после использования
+            notification.removeTimeout = removeTimeout;
         }, 4000);
+        // Сохраняем ссылку для возможной очистки
+        notification.hideTimeout = hideTimeout;
     }
     
     // Многопользовательские функции
